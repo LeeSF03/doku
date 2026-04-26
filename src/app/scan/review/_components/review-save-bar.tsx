@@ -18,21 +18,13 @@ export function ReviewSaveBar() {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 border-t bg-background/95 px-5 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3 backdrop-blur">
       <div className="pointer-events-auto space-y-3">
-        <div className="space-y-2">
-          <label
-            htmlFor="doc-name"
-            className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground"
-          >
-            Name
-          </label>
-          <Input
-            id="doc-name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Untitled document"
-            className="h-12 text-base"
-          />
-        </div>
+        <Input
+          id="doc-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Untitled document"
+          className="h-9 rounded-none border-0 border-b border-border bg-transparent px-1 text-sm shadow-none focus-visible:border-foreground focus-visible:ring-0"
+        />
 
         <Button
           onClick={handleSave}
