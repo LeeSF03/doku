@@ -1,8 +1,6 @@
 import { cn } from "@/lib/utils";
-import {
-  type ScanDraftPage,
-  useScanDraftActions,
-} from "../../_providers/scan-provider";
+import { useScanDraftActions } from "../../_providers/scan-provider";
+import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
 
 const filters = [
   { id: "original", label: "Original" },
@@ -11,13 +9,8 @@ const filters = [
   { id: "color", label: "Color" },
 ] as const;
 
-export type ReviewFilterId = (typeof filters)[number]["id"];
-
-type ReviewFilterTabsProps = {
-  page: ScanDraftPage | null;
-};
-
-export function ReviewFilterTabs({ page }: ReviewFilterTabsProps) {
+export function ReviewFilterTabs() {
+  const page = useDraftCurrentPage();
   const { setCurrentPageFilter } = useScanDraftActions();
   const activeFilter = page?.filter ?? "original";
 

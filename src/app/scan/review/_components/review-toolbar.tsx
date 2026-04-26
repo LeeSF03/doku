@@ -2,11 +2,11 @@ import Link from "next/link";
 import { Crop, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useCurrentReviewPage } from "../_hooks/use-current-review-page";
 import { useScanDraftActions } from "../../_providers/scan-provider";
+import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
 
 export function ReviewToolbar() {
-  const currentPage = useCurrentReviewPage();
+  const currentPage = useDraftCurrentPage();
   const { rotateCurrentPage } = useScanDraftActions();
 
   return (

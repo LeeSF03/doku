@@ -1,12 +1,10 @@
 import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type ScanDraftPage } from "../../_providers/scan-provider";
+import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
 
-type ReviewPreviewProps = {
-  page: ScanDraftPage | null;
-};
+export function ReviewPreview() {
+  const page = useDraftCurrentPage();
 
-export function ReviewPreview({ page }: ReviewPreviewProps) {
   return (
     <div
       className={cn(

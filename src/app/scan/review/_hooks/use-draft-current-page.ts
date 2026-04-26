@@ -2,7 +2,7 @@
 
 import { useScanDraftStore } from "../../_providers/scan-provider";
 
-export function useCurrentReviewPage() {
+export function useDraftCurrentPage() {
   return useScanDraftStore((state) => {
     const currentPageId = state.currentPageId;
 
