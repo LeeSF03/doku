@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useScanDraftActions } from "../../_providers/scan-provider";
 import {
   type DocumentCorners,
+  type DocumentPoint,
   processDocumentImage,
 } from "../_lib/process-document-image";
 import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
@@ -31,6 +32,7 @@ type ReviewProcessingContextValue = {
   replaceCurrentPage: () => void;
   resetProcessingPreview: () => void;
   status: ProcessingStatus;
+  updatePreviewCorner: (cornerIndex: number, point: DocumentPoint) => void;
 };
 
 const ReviewProcessingContext =
@@ -121,6 +123,19 @@ function ReviewProcessingProviderInner({ children }: { children: ReactNode }) {
     setErrorMessage(null);
   }
 
+  function updatePreviewCorner(cornerIndex: number, point: DocumentPoint) {
+    if (!previewRef.current) return;
+
+    const nextPreview = {
+      ...previewRef.current,
+      corners: previewRef.current.corners.map((corner, index) =>
+        index === cornerIndex ? clampPoint(point) : corner,
+      ) as DocumentCorners,
+    };
+
+    setProcessingPreview(nextPreview);
+  }
+
   return (
     <ReviewProcessingContext.Provider
       value={{
@@ -130,6 +145,7 @@ function ReviewProcessingProviderInner({ children }: { children: ReactNode }) {
         replaceCurrentPage,
         resetProcessingPreview,
         status,
+        updatePreviewCorner,
       }}
     >
       {children}
@@ -147,4 +163,11 @@ export function useReviewProcessing() {
   }
 
   return context;
+}
+
+function clampPoint(point: DocumentPoint): DocumentPoint {
+  return {
+    x: Math.min(1, Math.max(0, point.x)),
+    y: Math.min(1, Math.max(0, point.y)),
+  };
 }
