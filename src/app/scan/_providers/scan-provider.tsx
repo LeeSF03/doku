@@ -33,6 +33,7 @@ type ScanDraftActions = {
   setMode: (mode: ScanMode) => void;
   toggleAuto: () => void;
   appendPage: (page: ScanDraftPage) => void;
+  replacePageImage: (pageId: string, imageUrl: string) => void;
   rotateCurrentPage: () => void;
   setCurrentPageFilter: (filter: ScanFilterId) => void;
   setCurrentPageId: (pageId: string | null) => void;
@@ -93,6 +94,12 @@ function createScanDraftStore() {
         set((state) => ({
           pages: [...state.pages, page],
           currentPageId: page.id,
+        })),
+      replacePageImage: (pageId, imageUrl) =>
+        set((state) => ({
+          pages: state.pages.map((page) =>
+            page.id === pageId ? { ...page, imageUrl } : page
+          ),
         })),
       rotateCurrentPage: () =>
         set((state) => updateCurrentPage(state, rotatePage)),
