@@ -1,3 +1,20 @@
+export type DocumentPoint = {
+  x: number;
+  y: number;
+};
+
+export type DocumentCorners = [
+  DocumentPoint,
+  DocumentPoint,
+  DocumentPoint,
+  DocumentPoint,
+];
+
+export type ProcessedDocumentImage = {
+  blob: Blob;
+  corners: DocumentCorners;
+};
+
 export async function processDocumentImage(imageUrl: string) {
   const image = await loadImage(imageUrl);
   const canvas = document.createElement("canvas");
@@ -29,7 +46,10 @@ export async function processDocumentImage(imageUrl: string) {
     canvas.height
   );
 
-  return await canvasToBlob(canvas);
+  return {
+    blob: await canvasToBlob(canvas),
+    corners: getNormalizedCorners(source, image),
+  } satisfies ProcessedDocumentImage;
 }
 
 function getCenteredDocumentCrop(
@@ -50,6 +70,23 @@ function getCenteredDocumentCrop(
     width,
     height,
   };
+}
+
+function getNormalizedCorners(
+  source: ReturnType<typeof getCenteredDocumentCrop>,
+  image: HTMLImageElement
+): DocumentCorners {
+  const left = source.x / image.naturalWidth;
+  const top = source.y / image.naturalHeight;
+  const right = (source.x + source.width) / image.naturalWidth;
+  const bottom = (source.y + source.height) / image.naturalHeight;
+
+  return [
+    { x: left, y: top },
+    { x: right, y: top },
+    { x: right, y: bottom },
+    { x: left, y: bottom },
+  ];
 }
 
 function loadImage(imageUrl: string) {

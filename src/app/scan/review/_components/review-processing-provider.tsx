@@ -10,12 +10,16 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { useScanDraftActions } from "../../_providers/scan-provider";
-import { processDocumentImage } from "../_lib/process-document-image";
+import {
+  type DocumentCorners,
+  processDocumentImage,
+} from "../_lib/process-document-image";
 import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
 
 type ProcessingStatus = "idle" | "processing" | "ready" | "failed";
 
 type ProcessingPreview = {
+  corners: DocumentCorners;
   sourcePageId: string;
   imageUrl: string;
 };
@@ -72,13 +76,14 @@ function ReviewProcessingProviderInner({ children }: { children: ReactNode }) {
     setErrorMessage(null);
 
     try {
-      const blob = await processDocumentImage(currentPage.imageUrl);
-      const imageUrl = URL.createObjectURL(blob);
+      const processedImage = await processDocumentImage(currentPage.imageUrl);
+      const imageUrl = URL.createObjectURL(processedImage.blob);
 
       if (previewRef.current) {
         URL.revokeObjectURL(previewRef.current.imageUrl);
       }
       setProcessingPreview({
+        corners: processedImage.corners,
         sourcePageId: currentPage.id,
         imageUrl,
       });
