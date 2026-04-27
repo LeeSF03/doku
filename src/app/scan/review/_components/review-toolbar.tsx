@@ -1,4 +1,3 @@
-import { useRouter } from "next/navigation";
 import { Crop, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -27,15 +26,8 @@ export function ReviewToolbar({
 }: {
   currentPage: ScanDraftPage | null;
 }) {
-  const router = useRouter();
   const { rotatePage, setPageFilter } = useScanDraftActions();
   const activeFilter = currentPage?.filter ?? "original";
-
-  const handleRetake = () => {
-    if (!currentPage) return;
-
-    router.push(`/scan?replace-page-id=${encodeURIComponent(currentPage.id)}`);
-  };
 
   const handleFilterChange = (filter: ScanFilterId) => {
     if (!currentPage) return;
@@ -59,17 +51,6 @@ export function ReviewToolbar({
         <Button variant="ghost" size="sm">
           <Crop className="size-4" />
           Crop
-        </Button>
-        <Separator orientation="vertical" className="h-5!" />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={handleRetake}
-          disabled={!currentPage}
-          className="gap-1.5"
-        >
-          Retake
         </Button>
       </div>
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Check, Plus, WandSparkles, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, Plus, RotateCcw, WandSparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type ScanDraftPage } from "../../_providers/scan-provider";
 import {
@@ -22,8 +23,15 @@ export function ReviewPrimaryActionBar({
   clearCorrectionPreview: () => void;
   status: PreviewCorrectionStatus;
 }) {
+  const router = useRouter();
   const detecting = status === "detecting";
   const transforming = status === "transforming";
+
+  const handleRetake = () => {
+    if (!currentPage) return;
+
+    router.push(`/scan?replace-page-id=${encodeURIComponent(currentPage.id)}`);
+  };
 
   return (
     <div className="mt-4 space-y-2">
@@ -64,6 +72,17 @@ export function ReviewPrimaryActionBar({
             >
               <WandSparkles className="size-4" />
               {detecting ? "Processing" : "Correct"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleRetake}
+              disabled={!currentPage}
+              className="flex-1 gap-1.5"
+            >
+              <RotateCcw className="size-4" />
+              Retake
             </Button>
             <Button
               asChild
