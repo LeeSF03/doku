@@ -1,24 +1,18 @@
+import { randomUUID } from "node:crypto";
+import { spawn } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import sharp from "sharp";
 
-import {
-  type DocumentCorners,
-  type DocumentPoint,
-} from "@/app/scan/review/_lib/process-document-image";
+import { type DocumentCorners } from "@/app/scan/review/_lib/process-document-image";
 
 export const runtime = "nodejs";
 
-const MAX_DETECTION_SIZE = 900;
-const MIN_AREA_RATIO = 0.05;
-const MAX_AREA_RATIO = 0.92;
-const ACTIVE_ROW_RATIO = 0.05;
-const ACTIVE_COLUMN_RATIO = 0.05;
-const DOCUMENT_INSET_RATIO = 0.03;
-
-type DetectionBounds = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
+type DetectionResult = {
+  corners: DocumentCorners | null;
+  error?: string;
 };
 
 export async function POST(request: Request) {
@@ -41,220 +35,91 @@ export async function POST(request: Request) {
 }
 
 async function detectDocumentCorners(imageBuffer: Buffer) {
-  const { data, info } = await sharp(imageBuffer)
-    .rotate()
-    .resize({
-      width: MAX_DETECTION_SIZE,
-      height: MAX_DETECTION_SIZE,
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .grayscale()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+  const tempDirectory = await mkdtemp(join(tmpdir(), "doku-document-"));
+  const imagePath = join(tempDirectory, `${randomUUID()}.png`);
 
-  console.log("[document-detection:server] Prepared grayscale image.", {
-    width: info.width,
-    height: info.height,
-  });
+  try {
+    const normalizedImage = await sharp(imageBuffer).rotate().png().toBuffer();
+    await writeFile(imagePath, normalizedImage);
 
-  const threshold = getOtsuThreshold(data);
-  const borderMean = getBorderMean(data, info.width, info.height);
-  const centerMean = getCenterMean(data, info.width, info.height);
-  const documentIsLight = centerMean >= borderMean;
-  const cutoff = documentIsLight
-    ? Math.max(threshold, borderMean + 12)
-    : Math.min(threshold, borderMean - 12);
+    console.log("[document-detection:server] Running Python detector.");
 
-  console.log("[document-detection:server] Calculated threshold.", {
-    threshold,
-    borderMean,
-    centerMean,
-    documentIsLight,
-    cutoff,
-  });
+    const result = await runPythonDetector(imagePath);
 
-  const bounds = getForegroundBounds(
-    data,
-    info.width,
-    info.height,
-    documentIsLight,
-    cutoff
-  );
+    if (result.error) {
+      console.warn("[document-detection:server] Python detector error.", {
+        error: result.error,
+      });
+    }
 
-  if (!bounds) {
-    console.log("[document-detection:server] No confident document bounds.");
-    return null;
+    if (result.corners) {
+      console.log("[document-detection:server] Using Python corners.", {
+        corners: result.corners,
+      });
+    } else {
+      console.log("[document-detection:server] Python detector found no corners.");
+    }
+
+    return result.corners;
+  } finally {
+    await rm(tempDirectory, { force: true, recursive: true });
   }
+}
 
-  const areaRatio =
-    ((bounds.right - bounds.left + 1) * (bounds.bottom - bounds.top + 1)) /
-    (info.width * info.height);
-
-  console.log("[document-detection:server] Candidate bounds.", {
-    ...bounds,
-    areaRatio,
-  });
-
-  if (areaRatio < MIN_AREA_RATIO || areaRatio > MAX_AREA_RATIO) {
-    console.log("[document-detection:server] Rejected candidate bounds.", {
-      areaRatio,
+function runPythonDetector(imagePath: string) {
+  return new Promise<DetectionResult>((resolve, reject) => {
+    const pythonExecutable = process.env.PYTHON_BIN ?? getPythonExecutable();
+    const scriptPath = join("scripts", "python", "detect-document.py");
+    const child = spawn(pythonExecutable, [scriptPath, imagePath], {
+      windowsHide: true,
     });
-    return null;
-  }
+    let stdout = "";
+    let stderr = "";
 
-  return insetCorners(getNormalizedCorners(bounds, info.width, info.height));
-}
-
-function getOtsuThreshold(pixels: Uint8Array) {
-  const histogram = new Array<number>(256).fill(0);
-
-  for (const pixel of pixels) {
-    histogram[pixel] += 1;
-  }
-
-  const total = pixels.length;
-  let sum = 0;
-
-  for (let value = 0; value < histogram.length; value += 1) {
-    sum += value * histogram[value];
-  }
-
-  let backgroundWeight = 0;
-  let backgroundSum = 0;
-  let bestThreshold = 0;
-  let bestVariance = 0;
-
-  for (let value = 0; value < histogram.length; value += 1) {
-    backgroundWeight += histogram[value];
-
-    if (backgroundWeight === 0) {
-      continue;
-    }
-
-    const foregroundWeight = total - backgroundWeight;
-
-    if (foregroundWeight === 0) {
-      break;
-    }
-
-    backgroundSum += value * histogram[value];
-
-    const backgroundMean = backgroundSum / backgroundWeight;
-    const foregroundMean = (sum - backgroundSum) / foregroundWeight;
-    const variance =
-      backgroundWeight *
-      foregroundWeight *
-      (backgroundMean - foregroundMean) *
-      (backgroundMean - foregroundMean);
-
-    if (variance > bestVariance) {
-      bestVariance = variance;
-      bestThreshold = value;
-    }
-  }
-
-  return bestThreshold;
-}
-
-function getBorderMean(pixels: Uint8Array, width: number, height: number) {
-  const borderSize = Math.max(1, Math.round(Math.min(width, height) * 0.08));
-  let sum = 0;
-  let count = 0;
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const isBorder =
-        x < borderSize ||
-        x >= width - borderSize ||
-        y < borderSize ||
-        y >= height - borderSize;
-
-      if (isBorder) {
-        sum += pixels[y * width + x];
-        count += 1;
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", (error) => {
+      reject(error);
+    });
+    child.on("close", (code) => {
+      if (stderr.trim()) {
+        console.log("[document-detection:server] Python detector logs.", {
+          logs: stderr.trim(),
+        });
       }
-    }
-  }
 
-  return sum / count;
-}
-
-function getCenterMean(pixels: Uint8Array, width: number, height: number) {
-  const left = Math.round(width * 0.25);
-  const right = Math.round(width * 0.75);
-  const top = Math.round(height * 0.25);
-  const bottom = Math.round(height * 0.75);
-  let sum = 0;
-  let count = 0;
-
-  for (let y = top; y < bottom; y += 1) {
-    for (let x = left; x < right; x += 1) {
-      sum += pixels[y * width + x];
-      count += 1;
-    }
-  }
-
-  return sum / count;
-}
-
-function getForegroundBounds(
-  pixels: Uint8Array,
-  width: number,
-  height: number,
-  documentIsLight: boolean,
-  cutoff: number
-) {
-  const rowCounts = new Array<number>(height).fill(0);
-  const columnCounts = new Array<number>(width).fill(0);
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const pixel = pixels[y * width + x];
-      const isForeground = documentIsLight ? pixel >= cutoff : pixel <= cutoff;
-
-      if (isForeground) {
-        rowCounts[y] += 1;
-        columnCounts[x] += 1;
+      if (code !== 0) {
+        reject(
+          new Error(
+            `Python document detector exited with code ${code}: ${stderr.trim()}`
+          )
+        );
+        return;
       }
-    }
-  }
 
-  const minRowCount = width * ACTIVE_ROW_RATIO;
-  const minColumnCount = height * ACTIVE_COLUMN_RATIO;
-  const top = rowCounts.findIndex((count) => count >= minRowCount);
-  const bottom = rowCounts.findLastIndex((count) => count >= minRowCount);
-  const left = columnCounts.findIndex((count) => count >= minColumnCount);
-  const right = columnCounts.findLastIndex((count) => count >= minColumnCount);
-
-  if (top === -1 || bottom === -1 || left === -1 || right === -1) {
-    return null;
-  }
-
-  return { left, top, right, bottom } satisfies DetectionBounds;
+      try {
+        resolve(JSON.parse(stdout) as DetectionResult);
+      } catch (error) {
+        reject(
+          new Error(
+            `Python document detector returned invalid JSON: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          )
+        );
+      }
+    });
+  });
 }
 
-function getNormalizedCorners(
-  bounds: DetectionBounds,
-  width: number,
-  height: number
-): DocumentCorners {
-  return [
-    { x: bounds.left / width, y: bounds.top / height },
-    { x: bounds.right / width, y: bounds.top / height },
-    { x: bounds.right / width, y: bounds.bottom / height },
-    { x: bounds.left / width, y: bounds.bottom / height },
-  ];
-}
+function getPythonExecutable() {
+  if (process.platform === "win32") {
+    return join("scripts", "python", ".venv", "Scripts", "python.exe");
+  }
 
-function insetCorners(corners: DocumentCorners): DocumentCorners {
-  const center = corners.reduce<DocumentPoint>(
-    (sum, corner) => ({ x: sum.x + corner.x / 4, y: sum.y + corner.y / 4 }),
-    { x: 0, y: 0 }
-  );
-
-  return corners.map((corner) => ({
-    x: corner.x + (center.x - corner.x) * DOCUMENT_INSET_RATIO,
-    y: corner.y + (center.y - corner.y) * DOCUMENT_INSET_RATIO,
-  })) as DocumentCorners;
+  return join("scripts", "python", ".venv", "bin", "python");
 }
