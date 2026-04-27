@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Images } from "lucide-react";
+import { useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { type CameraState } from "../_hooks/use-camera-preview";
@@ -16,9 +17,10 @@ type ScanFooterProps = {
 
 export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
   const router = useRouter();
+  const [draftId] = useQueryState("draft-id");
   const [capturePending, setCapturePending] = useState(false);
   const pageCount = useScanDraftStore((state) => state.pages.length);
-  const { appendPage } = useScanDraftActions();
+  const { appendPage, upsertPage } = useScanDraftActions();
 
   const handleCapture = async () => {
     setCapturePending(true);
@@ -26,13 +28,18 @@ export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
     try {
       const blob = await captureFrame();
       const imageUrl = URL.createObjectURL(blob);
-
-      appendPage({
-        id: crypto.randomUUID(),
+      const page = {
+        id: draftId ?? crypto.randomUUID(),
         imageUrl,
         rotation: 0,
-        filter: "original",
-      });
+        filter: "original" as const,
+      };
+
+      if (draftId) {
+        upsertPage(page);
+      } else {
+        appendPage(page);
+      }
 
       router.push("/scan/review");
     } catch (error) {

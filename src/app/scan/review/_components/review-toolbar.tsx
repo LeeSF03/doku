@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Crop, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -6,8 +6,15 @@ import { useScanDraftActions } from "../../_providers/scan-provider";
 import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
 
 export function ReviewToolbar() {
+  const router = useRouter();
   const currentPage = useDraftCurrentPage();
   const { rotateCurrentPage } = useScanDraftActions();
+
+  const handleRetake = () => {
+    if (!currentPage) return;
+
+    router.push(`/scan?draft-id=${encodeURIComponent(currentPage.id)}`);
+  };
 
   return (
     <div className="mt-5 flex items-center justify-center gap-1">
@@ -27,8 +34,15 @@ export function ReviewToolbar() {
         Crop
       </Button>
       <Separator orientation="vertical" className="!h-5" />
-      <Button asChild variant="ghost" size="sm" className="gap-1.5">
-        <Link href="/scan">Retake</Link>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={handleRetake}
+        disabled={!currentPage}
+        className="gap-1.5"
+      >
+        Retake
       </Button>
     </div>
   );

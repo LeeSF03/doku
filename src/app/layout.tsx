@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -41,7 +42,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <body className="font-sans bg-background text-foreground overscroll-none">
-        {children}
+        <NuqsAdapter>{children}</NuqsAdapter>
         <Toaster position="top-center" />
       </body>
     </html>
