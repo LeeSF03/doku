@@ -80,12 +80,14 @@ function getNormalizedCorners(
   const top = source.y / image.naturalHeight;
   const right = (source.x + source.width) / image.naturalWidth;
   const bottom = (source.y + source.height) / image.naturalHeight;
+  const insetX = (right - left) * 0.03;
+  const insetY = (bottom - top) * 0.03;
 
   return [
-    { x: left, y: top },
-    { x: right, y: top },
-    { x: right, y: bottom },
-    { x: left, y: bottom },
+    { x: left + insetX, y: top + insetY },
+    { x: right - insetX, y: top + insetY },
+    { x: right - insetX, y: bottom - insetY },
+    { x: left + insetX, y: bottom - insetY },
   ];
 }
 

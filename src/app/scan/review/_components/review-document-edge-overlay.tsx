@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, type PointerEvent } from "react";
+import { useLayoutEffect, useRef, type PointerEvent } from "react";
+import { cn } from "@/lib/utils";
 import {
   type DocumentCorners,
   type DocumentPoint,
@@ -8,48 +9,51 @@ import {
 
 type ReviewDocumentEdgeOverlayProps = {
   corners: DocumentCorners;
-  onCornerChange: (cornerIndex: number, point: { x: number; y: number }) => void;
+  onCornerChange: (
+    cornerIndex: number,
+    point: { x: number; y: number },
+  ) => void;
 };
 
 export function ReviewDocumentEdgeOverlay({
   corners,
   onCornerChange,
 }: ReviewDocumentEdgeOverlayProps) {
-  const overlayRef = useRef<SVGSVGElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const polygonRef = useRef<SVGPolygonElement | null>(null);
-  const handleRefs = useRef<Array<SVGCircleElement | null>>([]);
+  const handleRefs = useRef<Array<HTMLDivElement | null>>([]);
   const activeCornerIndexRef = useRef<number | null>(null);
   const activePointerIdRef = useRef<number | null>(null);
   const draftCornersRef = useRef<DocumentCorners>(corners);
   const points = getPolygonPoints(corners);
 
+  useLayoutEffect(() => {
+    corners.forEach((corner, index) => updateHandlePosition(index, corner));
+  }, [corners]);
+
   function handlePointerDown(
-    event: PointerEvent<SVGCircleElement>,
-    cornerIndex: number
+    event: PointerEvent<HTMLDivElement>,
+    cornerIndex: number,
   ) {
-    draftCornersRef.current = corners;
+    draftCornersRef.current = [...corners] as DocumentCorners;
     activeCornerIndexRef.current = cornerIndex;
     activePointerIdRef.current = event.pointerId;
     overlayRef.current?.setPointerCapture(event.pointerId);
     updateCornerFromPointer(event, cornerIndex, false);
   }
 
-  function handlePointerMove(event: PointerEvent<SVGSVGElement>) {
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
     if (activePointerIdRef.current !== event.pointerId) return;
 
-    const cornerIndex = activeCornerIndexRef.current;
-
-    if (cornerIndex === null) return;
-    updateCornerFromPointer(event, cornerIndex, false);
+    if (activeCornerIndexRef.current === null) return;
+    updateCornerFromPointer(event, activeCornerIndexRef.current, false);
   }
 
-  function handlePointerEnd(event: PointerEvent<SVGSVGElement>) {
+  function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
     if (activePointerIdRef.current !== event.pointerId) return;
 
-    const cornerIndex = activeCornerIndexRef.current;
-
-    if (cornerIndex === null) return;
-    updateCornerFromPointer(event, cornerIndex, true);
+    if (activeCornerIndexRef.current === null) return;
+    updateCornerFromPointer(event, activeCornerIndexRef.current, true);
 
     if (overlayRef.current?.hasPointerCapture(event.pointerId)) {
       overlayRef.current.releasePointerCapture(event.pointerId);
@@ -60,57 +64,45 @@ export function ReviewDocumentEdgeOverlay({
   }
 
   function updateCornerFromPointer(
-    event: PointerEvent<SVGCircleElement | SVGSVGElement>,
+    event: PointerEvent<HTMLDivElement>,
     cornerIndex: number,
-    commit: boolean
+    commit: boolean,
   ) {
-    const point = getSvgPointFromPointer(event);
+    const point = getOverlayPointFromPointer(event);
 
     if (!point) return;
 
-    draftCornersRef.current = draftCornersRef.current.map((corner, index) =>
-      index === cornerIndex ? point : corner
-    ) as DocumentCorners;
+    draftCornersRef.current[cornerIndex] = point;
     updateHandlePosition(cornerIndex, point);
     updatePolygonPoints(draftCornersRef.current);
 
     if (commit) onCornerChange(cornerIndex, point);
   }
 
-  function getSvgPointFromPointer(
-    event: PointerEvent<SVGCircleElement | SVGSVGElement>
-  ) {
-    const svg = overlayRef.current;
+  function getOverlayPointFromPointer(event: PointerEvent<HTMLDivElement>) {
+    const overlay = overlayRef.current;
 
-    if (!svg) return null;
+    if (!overlay) return null;
 
-    const transform = svg.getScreenCTM()?.inverse();
-
-    if (!transform) return null;
-
-    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(
-      transform
-    );
-
-    return clampPoint({
-      x: point.x,
-      y: point.y,
-    });
+    const rect = overlay.getBoundingClientRect();
+    return {
+      x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
+      y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)),
+    };
   }
 
   function updateHandlePosition(cornerIndex: number, point: DocumentPoint) {
+    const overlay = overlayRef.current;
     const handle = handleRefs.current[cornerIndex];
 
-    if (!handle) return;
+    if (!overlay || !handle) return;
 
-    handle.setAttribute("cx", String(point.x));
-    handle.setAttribute("cy", String(point.y));
+    const rect = overlay.getBoundingClientRect();
+
+    handle.style.transform = `translate(${point.x * rect.width}px, ${point.y * rect.height}px) translate(-50%, -50%)`;
   }
 
-  function setHandleRef(
-    cornerIndex: number,
-    handle: SVGCircleElement | null
-  ) {
+  function setHandleRef(cornerIndex: number, handle: HTMLDivElement | null) {
     handleRefs.current[cornerIndex] = handle;
   }
 
@@ -122,20 +114,9 @@ export function ReviewDocumentEdgeOverlay({
     return corners.map((corner) => `${corner.x},${corner.y}`).join(" ");
   }
 
-  function clampPoint(point: DocumentPoint): DocumentPoint {
-    return {
-      x: Math.min(1, Math.max(0, point.x)),
-      y: Math.min(1, Math.max(0, point.y)),
-    };
-  }
-
   return (
-    <svg
+    <div
       ref={overlayRef}
-      width="100%"
-      height="100%"
-      viewBox="0 0 1 1"
-      preserveAspectRatio="none"
       className="absolute inset-0 size-full touch-none overflow-visible"
       aria-label="Document edge adjustment"
       role="group"
@@ -143,35 +124,34 @@ export function ReviewDocumentEdgeOverlay({
       onPointerUp={handlePointerEnd}
       onPointerCancel={handlePointerEnd}
     >
-      <polygon
-        ref={polygonRef}
-        points={points}
-        className="pointer-events-none fill-sky-400/10 stroke-sky-300"
-        vectorEffect="non-scaling-stroke"
-        strokeWidth="2"
-      />
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 1 1"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-0 size-full overflow-visible"
+      >
+        <polygon
+          ref={polygonRef}
+          points={points}
+          className="fill-sky-400/10 stroke-sky-300"
+          vectorEffect="non-scaling-stroke"
+          strokeWidth="2"
+        />
+      </svg>
 
       {corners.map((corner, index) => (
-        <g key={`${corner.x}-${corner.y}-${index}`}>
-          <circle
-            className="cursor-grab fill-transparent active:cursor-grabbing"
-            cx={corner.x}
-            cy={corner.y}
-            r="0.045"
-            vectorEffect="non-scaling-stroke"
-            onPointerDown={(event) => handlePointerDown(event, index)}
-          />
-          <circle
-            ref={(handle) => setHandleRef(index, handle)}
-            className="pointer-events-none fill-sky-300 stroke-background"
-            cx={corner.x}
-            cy={corner.y}
-            r="0.018"
-            vectorEffect="non-scaling-stroke"
-            strokeWidth="2"
-          />
-        </g>
+        <div
+          key={`${corner.x}-${corner.y}-${index}`}
+          ref={(handle) => setHandleRef(index, handle)}
+          className={cn(
+            "absolute left-0 top-0 size-4 cursor-grab rounded-full border-2 border-background bg-sky-300 shadow-sm active:cursor-grabbing",
+          )}
+          onPointerDown={(event) => {
+            handlePointerDown(event, index);
+          }}
+        />
       ))}
-    </svg>
+    </div>
   );
 }
