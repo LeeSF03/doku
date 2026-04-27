@@ -17,9 +17,10 @@ import {
   type DocumentCorners,
   type DocumentPoint,
   processDocumentImage,
+  transformDocumentImage,
 } from "../_lib/process-document-image";
 
-type ProcessingStatus = "idle" | "processing" | "ready" | "failed";
+type ProcessingStatus = "idle" | "processing" | "ready" | "applying" | "failed";
 
 type ProcessingPreview = {
   corners: DocumentCorners;
@@ -31,7 +32,7 @@ type ReviewProcessingContextValue = {
   errorMessage: string | null;
   preview: ProcessingPreview | null;
   processCurrentPage: () => Promise<void>;
-  replaceCurrentPage: () => void;
+  replaceCurrentPage: () => Promise<void>;
   resetProcessingPreview: () => void;
   status: ProcessingStatus;
   updatePreviewCorner: (cornerIndex: number, point: DocumentPoint) => void;
@@ -41,23 +42,6 @@ const ReviewProcessingContext =
   createContext<ReviewProcessingContextValue | null>(null);
 
 export function ReviewProcessingProvider({
-  children,
-  currentPage,
-}: {
-  children: ReactNode;
-  currentPage: ScanDraftPage | null;
-}) {
-  return (
-    <ReviewProcessingProviderInner
-      key={currentPage?.id}
-      currentPage={currentPage}
-    >
-      {children}
-    </ReviewProcessingProviderInner>
-  );
-}
-
-function ReviewProcessingProviderInner({
   children,
   currentPage,
 }: {
@@ -114,14 +98,36 @@ function ReviewProcessingProviderInner({
     }
   }
 
-  function replaceCurrentPage() {
-    if (!preview) return;
+  async function replaceCurrentPage() {
+    if (!preview || status === "applying") return;
 
-    replacePageImage(preview.sourcePageId, preview.imageUrl);
-    setProcessingPreview(null);
-    setStatus("idle");
     setErrorMessage(null);
-    toast.success("Current page replaced");
+    setStatus("applying");
+
+    try {
+      const transformedImage = await transformDocumentImage(
+        preview.imageUrl,
+        preview.corners,
+      );
+      const transformedImageUrl = URL.createObjectURL(transformedImage);
+
+      replacePageImage(preview.sourcePageId, transformedImageUrl);
+      URL.revokeObjectURL(preview.imageUrl);
+      setProcessingPreview(null);
+      setStatus("idle");
+      toast.success("Current page replaced");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not transform this document.";
+
+      setStatus("failed");
+      setErrorMessage(message);
+      toast.error("Document transform failed", {
+        description: message,
+      });
+    }
   }
 
   function resetProcessingPreview() {

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { type ScanDraftPage } from "../../_providers/scan-provider";
 import { useReviewProcessing } from "./review-processing-provider";
 
-export function ReviewPrimaryActionsBar({
+export function ReviewPrimaryActionBar({
   currentPage,
 }: {
   currentPage: ScanDraftPage | null;
@@ -17,6 +17,7 @@ export function ReviewPrimaryActionsBar({
     status,
   } = useReviewProcessing();
   const processing = status === "processing";
+  const applying = status === "applying";
 
   return (
     <div className="mt-4 space-y-2">
@@ -27,16 +28,18 @@ export function ReviewPrimaryActionsBar({
               type="button"
               size="sm"
               onClick={replaceCurrentPage}
+              disabled={applying}
               className="flex-1 gap-1.5"
             >
               <Check className="size-4" />
-              Apply
+              {applying ? "Applying" : "Apply"}
             </Button>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={resetProcessingPreview}
+              disabled={applying}
               className="flex-1 gap-1.5"
             >
               <X className="size-4" />

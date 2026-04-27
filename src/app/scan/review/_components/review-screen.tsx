@@ -8,6 +8,7 @@ import { ReviewPreview } from "./review-preview";
 import { ReviewProcessingProvider } from "./review-processing-provider";
 import { ReviewSaveBar } from "./review-save-bar";
 import { ReviewToolbar } from "./review-toolbar";
+import { ReviewPrimaryActionBar } from "./review-primary-actions-bar";
 
 export function ReviewScreen() {
   const [draftPageId] = useQueryState("draft-page-id");
@@ -26,8 +27,12 @@ export function ReviewScreen() {
       <ReviewHeader />
 
       <main className="flex-1 px-5 pb-48 pt-4">
-        <ReviewProcessingProvider currentPage={currentPage}>
+        <ReviewProcessingProvider
+          key={currentPage?.id}
+          currentPage={currentPage}
+        >
           <ReviewPreview page={currentPage} />
+          <ReviewPrimaryActionBar currentPage={currentPage} />
         </ReviewProcessingProvider>
         <ReviewPageCarousel />
         <ReviewToolbar currentPage={currentPage} />

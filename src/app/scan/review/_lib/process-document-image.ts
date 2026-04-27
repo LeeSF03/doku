@@ -15,6 +15,36 @@ export type ProcessedDocumentImage = {
   corners: DocumentCorners;
 };
 
+export async function transformDocumentImage(
+  imageUrl: string,
+  corners: DocumentCorners,
+) {
+  console.log("[document-transform] Starting perspective transform.");
+
+  const imageResponse = await fetch(imageUrl);
+
+  if (!imageResponse.ok) {
+    throw new Error("Could not load document image for transform.");
+  }
+
+  const imageBlob = await imageResponse.blob();
+  const formData = new FormData();
+
+  formData.set("image", imageBlob, "scan.jpg");
+  formData.set("corners", JSON.stringify(corners));
+
+  const transformResponse = await fetch("/api/document-transform", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!transformResponse.ok) {
+    throw new Error("Document transform request failed.");
+  }
+
+  return transformResponse.blob();
+}
+
 export async function processDocumentImage(imageUrl: string) {
   console.log("[document-detection] Starting preview processing.");
 
