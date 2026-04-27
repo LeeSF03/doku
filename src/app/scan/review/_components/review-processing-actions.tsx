@@ -1,10 +1,13 @@
 import { Check, WandSparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
+import { type ScanDraftPage } from "../../_providers/scan-provider";
 import { useReviewProcessing } from "./review-processing-provider";
 
-export function ReviewProcessingActions() {
-  const currentPage = useDraftCurrentPage();
+export function ReviewProcessingActions({
+  currentPage,
+}: {
+  currentPage: ScanDraftPage | null;
+}) {
   const {
     preview,
     processCurrentPage,

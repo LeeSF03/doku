@@ -9,13 +9,15 @@ import {
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
-import { useScanDraftActions } from "../../_providers/scan-provider";
+import {
+  type ScanDraftPage,
+  useScanDraftActions,
+} from "../../_providers/scan-provider";
 import {
   type DocumentCorners,
   type DocumentPoint,
   processDocumentImage,
 } from "../_lib/process-document-image";
-import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
 
 type ProcessingStatus = "idle" | "processing" | "ready" | "failed";
 
@@ -40,20 +42,28 @@ const ReviewProcessingContext =
 
 export function ReviewProcessingProvider({
   children,
+  currentPage,
 }: {
   children: ReactNode;
+  currentPage: ScanDraftPage | null;
 }) {
-  const currentPage = useDraftCurrentPage();
-
   return (
-    <ReviewProcessingProviderInner key={currentPage?.id}>
+    <ReviewProcessingProviderInner
+      key={currentPage?.id}
+      currentPage={currentPage}
+    >
       {children}
     </ReviewProcessingProviderInner>
   );
 }
 
-function ReviewProcessingProviderInner({ children }: { children: ReactNode }) {
-  const currentPage = useDraftCurrentPage();
+function ReviewProcessingProviderInner({
+  children,
+  currentPage,
+}: {
+  children: ReactNode;
+  currentPage: ScanDraftPage | null;
+}) {
   const { replacePageImage } = useScanDraftActions();
   const [status, setStatus] = useState<ProcessingStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

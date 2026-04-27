@@ -1,13 +1,12 @@
+import Image from "next/image";
 import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
+import { type ScanDraftPage } from "../../_providers/scan-provider";
 import { ReviewDocumentEdgeOverlay } from "./review-document-edge-overlay";
-import { ReviewProcessingActions } from "./review-processing-actions";
 import { useReviewProcessing } from "./review-processing-provider";
-import Image from "next/image";
+import { ReviewProcessingActions } from "./review-processing-actions";
 
-export function ReviewPreview() {
-  const page = useDraftCurrentPage();
+export function ReviewPreview({ page }: { page: ScanDraftPage | null }) {
   const { preview, status, updatePreviewCorner } = useReviewProcessing();
 
   const { imageUrl: previewImageUrl, corners: previewCorners } =
@@ -15,15 +14,15 @@ export function ReviewPreview() {
       ? preview
       : { imageUrl: null, corners: null };
 
-  const imageUrl = preview ? previewImageUrl : page?.imageUrl;
+  const imageUrl = previewImageUrl ?? page?.imageUrl;
 
   return (
     <>
       <div className="mx-auto w-full max-w-sm">
         <div
-          data-filer={page?.filter}
+          data-filter={page?.filter}
           className={
-            "relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-xl border bg-muted transition-all data-[filer=none]:bg-transparent data-[filer=bw]:bg-zinc-100 data-[filer=bw]:contrast-150 data-[filer=grayscale]:grayscale data-[filer=color]:saturate-150"
+            "relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-xl border bg-muted transition-all data-[filter=none]:bg-transparent data-[filter=bw]:bg-zinc-100 data-[filter=bw]:contrast-150 data-[filter=grayscale]:grayscale data-[filter=color]:saturate-150"
           }
         >
           {imageUrl && page ? (
@@ -56,7 +55,7 @@ export function ReviewPreview() {
         </div>
       </div>
 
-      <ReviewProcessingActions />
+      <ReviewProcessingActions currentPage={page} />
     </>
   );
 }

@@ -2,12 +2,17 @@ import { useRouter } from "next/navigation";
 import { Crop, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useScanDraftActions } from "../../_providers/scan-provider";
-import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
+import {
+  type ScanDraftPage,
+  useScanDraftActions,
+} from "../../_providers/scan-provider";
 
-export function ReviewToolbar() {
+export function ReviewToolbar({
+  currentPage,
+}: {
+  currentPage: ScanDraftPage | null;
+}) {
   const router = useRouter();
-  const currentPage = useDraftCurrentPage();
   const { rotatePage } = useScanDraftActions();
 
   const handleRetake = () => {
