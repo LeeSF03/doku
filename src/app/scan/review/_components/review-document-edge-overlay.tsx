@@ -27,6 +27,17 @@ export function ReviewDocumentEdgeOverlay({
   const draftCornersRef = useRef<DocumentCorners>(corners);
   const points = getPolygonPoints(corners);
 
+  function updateHandlePosition(cornerIndex: number, point: DocumentPoint) {
+    const overlay = overlayRef.current;
+    const handle = handleRefs.current[cornerIndex];
+
+    if (!overlay || !handle) return;
+
+    const rect = overlay.getBoundingClientRect();
+
+    handle.style.transform = `translate(${point.x * rect.width}px, ${point.y * rect.height}px) translate(-50%, -50%)`;
+  }
+
   useLayoutEffect(() => {
     corners.forEach((corner, index) => updateHandlePosition(index, corner));
   }, [corners]);
@@ -89,17 +100,6 @@ export function ReviewDocumentEdgeOverlay({
       x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
       y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)),
     };
-  }
-
-  function updateHandlePosition(cornerIndex: number, point: DocumentPoint) {
-    const overlay = overlayRef.current;
-    const handle = handleRefs.current[cornerIndex];
-
-    if (!overlay || !handle) return;
-
-    const rect = overlay.getBoundingClientRect();
-
-    handle.style.transform = `translate(${point.x * rect.width}px, ${point.y * rect.height}px) translate(-50%, -50%)`;
   }
 
   function setHandleRef(cornerIndex: number, handle: HTMLDivElement | null) {

@@ -1,4 +1,4 @@
-import { WandSparkles, X } from "lucide-react";
+import { Check, WandSparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
 import { useReviewProcessing } from "./review-processing-provider";
@@ -13,58 +13,53 @@ export function ReviewProcessingActions() {
     resetProcessingPreview,
     status,
   } = useReviewProcessing();
+  const processing = status === "processing";
 
   return (
-    <div className="mt-4 rounded-xl border bg-card p-3 shadow-xs">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium">Document correction</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {getProcessingMessage(status, Boolean(preview), errorMessage)}
-          </p>
-        </div>
-
+    <div className="mt-4 space-y-2">
+      <div className="flex gap-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={processCurrentPage}
-          disabled={!currentPage || status === "processing"}
-          className="shrink-0 gap-1.5"
+          disabled={!currentPage || processing}
+          className="flex-1 gap-1.5"
         >
           <WandSparkles className="size-4" />
-          {status === "processing" ? "Processing" : "Process"}
+          {processing ? "Processing" : "Correct"}
         </Button>
-      </div>
 
-      {preview ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Button type="button" onClick={replaceCurrentPage}>
-            Replace current
+        {preview ? (
+          <Button
+            type="button"
+            size="sm"
+            onClick={replaceCurrentPage}
+            className="flex-1 gap-1.5"
+          >
+            <Check className="size-4" />
+            Apply
           </Button>
+        ) : null}
+
+        {preview ? (
           <Button
             type="button"
             variant="ghost"
+            size="icon-sm"
             onClick={resetProcessingPreview}
-            className="gap-1.5"
+            aria-label="Discard correction preview"
           >
             <X className="size-4" />
-            Keep original
           </Button>
-        </div>
+        ) : null}
+      </div>
+
+      {status === "failed" ? (
+        <p className="px-1 text-xs text-destructive">
+          {errorMessage ?? "Could not process the page."}
+        </p>
       ) : null}
     </div>
   );
-}
-
-function getProcessingMessage(
-  status: "idle" | "processing" | "ready" | "failed",
-  hasPreview: boolean,
-  errorMessage: string | null
-) {
-  if (status === "processing") return "Preparing a corrected preview...";
-  if (hasPreview) return "Preview ready. Replace only if it looks better.";
-  if (status === "failed") return errorMessage ?? "Could not process the page.";
-
-  return "Create a corrected preview before replacing the draft page.";
 }
