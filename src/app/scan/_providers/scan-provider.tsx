@@ -15,13 +15,11 @@ export type ScanDraftPage = {
 
 type ScanDraftState = {
   draftId: string;
-  auto: boolean;
   pages: ScanDraftPage[];
   actions: ScanDraftActions;
 };
 
 type ScanDraftActions = {
-  toggleAuto: () => void;
   upsertPage: (page: ScanDraftPage) => void;
   removePage: (pageId: string) => void;
   replacePageImage: (pageId: string, imageUrl: string) => void;
@@ -32,7 +30,6 @@ type ScanDraftActions = {
 
 const initialScanDraftState = {
   draftId: "draft",
-  auto: false,
   pages: [] as ScanDraftPage[],
 };
 
@@ -76,7 +73,6 @@ function createScanDraftStore() {
   return createStore<ScanDraftState>()((set) => ({
     ...initialScanDraftState,
     actions: {
-      toggleAuto: () => set((state) => ({ auto: !state.auto })),
       upsertPage: (page) =>
         set((state) => {
           const pageExists = state.pages.some(

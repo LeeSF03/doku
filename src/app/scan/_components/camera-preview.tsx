@@ -1,8 +1,5 @@
-import {
-  type CameraState,
-} from "../_hooks/use-camera-preview";
 import { type RefObject } from "react";
-import { useScanDraftStore } from "../_providers/scan-provider";
+import { type CameraState } from "../_hooks/use-camera-preview";
 import { ScanFrame } from "./scan-frame";
 
 type CameraPreviewProps = {
@@ -16,9 +13,7 @@ export function CameraPreview({
   cameraState,
   videoRef,
 }: CameraPreviewProps) {
-  const auto = useScanDraftStore((state) => state.auto);
   const guidanceMessage = getGuidanceMessage({
-    auto,
     cameraErrorMessage,
     cameraState,
   });
@@ -43,11 +38,9 @@ export function CameraPreview({
 }
 
 function getGuidanceMessage({
-  auto,
   cameraErrorMessage,
   cameraState,
 }: {
-  auto: boolean;
   cameraErrorMessage: string | null;
   cameraState: CameraState;
 }) {
@@ -55,8 +48,6 @@ function getGuidanceMessage({
 
   if (cameraState === "error")
     return cameraErrorMessage ?? "Allow camera access to scan documents.";
-
-  if (auto) return "Move closer until the page fills the frame";
 
   return "Tap shutter to capture";
 }

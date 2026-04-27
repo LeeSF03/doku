@@ -2,15 +2,11 @@
 
 import { type Route } from "next";
 import { useRouter } from "next/navigation";
-import { RotateCcw, Sparkles, X, Zap, ZapOff } from "lucide-react";
+import { RotateCcw, X, Zap, ZapOff } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { type CameraState } from "../_hooks/use-camera-preview";
-import {
-  useScanDraftActions,
-  useScanDraftStore,
-} from "../_providers/scan-provider";
 
 type ScanHeaderProps = {
   cameraState: CameraState;
@@ -26,9 +22,7 @@ export function ScanHeader({
   toggleFlash,
 }: ScanHeaderProps) {
   const router = useRouter();
-  const auto = useScanDraftStore((state) => state.auto);
   const [replacePageId] = useQueryState("replace-page-id");
-  const { toggleAuto } = useScanDraftActions();
   const flashDisabled = cameraState !== "ready" || !flashSupported;
 
   const reviewHref = replacePageId
@@ -67,23 +61,12 @@ export function ScanHeader({
         <X />
       </Button>
 
-      <div className="flex items-center gap-2">
-        {replacePageId && (
-          <div className="flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs font-medium text-white">
-            <RotateCcw className="size-3.5" />
-            Retake
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleAuto}
-          className="h-8 gap-1.5 rounded-full bg-white/10 px-3 text-xs font-medium text-white hover:bg-white/20 hover:text-white"
-        >
-          <Sparkles className="size-3.5" />
-          {auto ? "Auto" : "Manual"}
-        </Button>
-      </div>
+      {replacePageId && (
+        <div className="flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs font-medium text-white">
+          <RotateCcw className="size-3.5" />
+          Retake
+        </div>
+      )}
 
       <Button
         variant="ghost"
