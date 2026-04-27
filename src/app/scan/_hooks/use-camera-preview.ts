@@ -4,11 +4,25 @@ import { useEffect, useRef, useState } from "react";
 
 export type CameraState = "loading" | "ready" | "error";
 
+type TorchMediaTrackCapabilities = MediaTrackCapabilities & {
+  torch?: boolean;
+};
+
+type TorchMediaTrackConstraints = MediaTrackConstraints & {
+  advanced?: TorchMediaTrackConstraintSet[];
+};
+
+type TorchMediaTrackConstraintSet = MediaTrackConstraintSet & {
+  torch?: boolean;
+};
+
 export function useCameraPreview() {
   const [cameraState, setCameraState] = useState<CameraState>("loading");
   const [cameraErrorMessage, setCameraErrorMessage] = useState<string | null>(
     null,
   );
+  const [flashEnabled, setFlashEnabled] = useState(false);
+  const [flashSupported, setFlashSupported] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -49,6 +63,25 @@ export function useCameraPreview() {
     return blob;
   };
 
+  const toggleFlash = async () => {
+    const track = streamRef.current?.getVideoTracks()[0] ?? null;
+
+    if (!track || !flashSupported) {
+      throw new Error("Flash is not supported on this camera.");
+    }
+
+    const nextFlashEnabled = !flashEnabled;
+
+    await track.applyConstraints({
+      advanced: [
+        {
+          torch: nextFlashEnabled,
+        },
+      ],
+    } as TorchMediaTrackConstraints);
+    setFlashEnabled(nextFlashEnabled);
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -75,9 +108,19 @@ export function useCameraPreview() {
         }
 
         streamRef.current = stream;
+        setFlashEnabled(false);
+        setFlashSupported(() => {
+          const track = streamRef.current?.getVideoTracks()[0] ?? null;
+
+          if (!track?.getCapabilities) return false;
+
+          const capabilities =
+            track.getCapabilities() as TorchMediaTrackCapabilities;
+          return capabilities.torch === true;
+        });
 
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          videoRef.current.srcObject = streamRef.current;
           await videoRef.current.play().catch(() => undefined);
         }
 
@@ -93,6 +136,8 @@ export function useCameraPreview() {
 
     return () => {
       cancelled = true;
+      setFlashEnabled(false);
+      setFlashSupported(false);
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     };
@@ -102,6 +147,9 @@ export function useCameraPreview() {
     captureFrame,
     cameraErrorMessage,
     cameraState,
+    flashEnabled,
+    flashSupported,
+    toggleFlash,
     videoRef,
   };
 }

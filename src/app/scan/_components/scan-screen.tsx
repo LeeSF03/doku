@@ -6,12 +6,24 @@ import { ScanFooter } from "./scan-footer";
 import { ScanHeader } from "./scan-header";
 
 export function ScanScreen() {
-  const { captureFrame, cameraErrorMessage, cameraState, videoRef } =
-    useCameraPreview();
+  const {
+    captureFrame,
+    cameraErrorMessage,
+    cameraState,
+    flashEnabled,
+    flashSupported,
+    toggleFlash,
+    videoRef,
+  } = useCameraPreview();
 
   return (
     <div className="dark fixed inset-0 flex flex-col bg-black text-white">
-      <ScanHeader />
+      <ScanHeader
+        cameraState={cameraState}
+        flashEnabled={flashEnabled}
+        flashSupported={flashSupported}
+        toggleFlash={toggleFlash}
+      />
 
       <CameraPreview
         cameraErrorMessage={cameraErrorMessage}

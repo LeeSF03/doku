@@ -1,16 +1,40 @@
 import Link from "next/link";
-import { useState } from "react";
 import { Sparkles, X, Zap, ZapOff } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { type CameraState } from "../_hooks/use-camera-preview";
 import {
   useScanDraftActions,
   useScanDraftStore,
 } from "../_providers/scan-provider";
 
-export function ScanHeader() {
-  const [flash, setFlash] = useState(false);
+type ScanHeaderProps = {
+  cameraState: CameraState;
+  flashEnabled: boolean;
+  flashSupported: boolean;
+  toggleFlash: () => Promise<void>;
+};
+
+export function ScanHeader({
+  cameraState,
+  flashEnabled,
+  flashSupported,
+  toggleFlash,
+}: ScanHeaderProps) {
   const auto = useScanDraftStore((state) => state.auto);
   const { toggleAuto } = useScanDraftActions();
+  const flashDisabled = cameraState !== "ready" || !flashSupported;
+
+  const handleToggleFlash = async () => {
+    try {
+      await toggleFlash();
+    } catch (error) {
+      toast.error("Could not toggle flash", {
+        description:
+          error instanceof Error ? error.message : "Try again in a moment.",
+      });
+    }
+  };
 
   return (
     <div className="flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-3">
@@ -38,11 +62,12 @@ export function ScanHeader() {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => setFlash((current) => !current)}
-        aria-label={flash ? "Disable flash" : "Enable flash"}
-        className="rounded-full text-white hover:bg-white/10 hover:text-white"
+        onClick={handleToggleFlash}
+        disabled={flashDisabled}
+        aria-label={flashEnabled ? "Disable flash" : "Enable flash"}
+        className="rounded-full text-white hover:bg-white/10 hover:text-white disabled:text-muted-foreground/50 disabled:opacity-100"
       >
-        {flash ? (
+        {flashEnabled ? (
           <Zap className="fill-yellow-300 text-yellow-300" />
         ) : (
           <ZapOff />
