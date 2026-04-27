@@ -10,7 +10,7 @@ export type DocumentCorners = [
   DocumentPoint,
 ];
 
-export type ProcessedDocumentImage = {
+export type DocumentCorrectionPreview = {
   blob: Blob;
   corners: DocumentCorners;
 };
@@ -19,8 +19,6 @@ export async function transformDocumentImage(
   imageUrl: string,
   corners: DocumentCorners,
 ) {
-  console.log("[document-transform] Starting perspective transform.");
-
   const imageResponse = await fetch(imageUrl);
 
   if (!imageResponse.ok) {
@@ -45,9 +43,7 @@ export async function transformDocumentImage(
   return transformResponse.blob();
 }
 
-export async function processDocumentImage(imageUrl: string) {
-  console.log("[document-detection] Starting preview processing.");
-
+export async function createDocumentCorrectionPreview(imageUrl: string) {
   const image = await loadImage(imageUrl);
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -65,7 +61,6 @@ export async function processDocumentImage(imageUrl: string) {
 
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.filter = "contrast(1.08) saturate(0.96)";
   context.drawImage(
     image,
     source.x,
@@ -85,13 +80,11 @@ export async function processDocumentImage(imageUrl: string) {
     corners: detectedCorners
       ? mapImageCornersToCropCorners(detectedCorners, source, image)
       : getInsetPreviewCorners(),
-  } satisfies ProcessedDocumentImage;
+  } satisfies DocumentCorrectionPreview;
 }
 
 async function detectDocumentCorners(imageUrl: string) {
   try {
-    console.log("[document-detection] Requesting server-side detection.");
-
     const imageResponse = await fetch(imageUrl);
 
     if (!imageResponse.ok) {
@@ -115,14 +108,6 @@ async function detectDocumentCorners(imageUrl: string) {
     const result = (await detectionResponse.json()) as {
       corners: DocumentCorners | null;
     };
-
-    if (result.corners) {
-      console.log("[document-detection] Received server-side corners.", {
-        corners: result.corners,
-      });
-    } else {
-      console.log("[document-detection] Server-side detection had no result.");
-    }
 
     return result.corners;
   } catch (error) {
@@ -163,7 +148,10 @@ function mapImageCornersToCropCorners(
     const x = (corner.x * image.naturalWidth - source.x) / source.width;
     const y = (corner.y * image.naturalHeight - source.y) / source.height;
 
-    return clampPoint({ x, y });
+    return {
+      x: Math.min(1, Math.max(0, x)),
+      y: Math.min(1, Math.max(0, y)),
+    };
   }) as DocumentCorners;
 }
 
@@ -174,13 +162,6 @@ function getInsetPreviewCorners(): DocumentCorners {
     { x: 0.97, y: 0.97 },
     { x: 0.03, y: 0.97 },
   ];
-}
-
-function clampPoint(point: DocumentPoint): DocumentPoint {
-  return {
-    x: Math.min(1, Math.max(0, point.x)),
-    y: Math.min(1, Math.max(0, point.y)),
-  };
 }
 
 function loadImage(imageUrl: string) {

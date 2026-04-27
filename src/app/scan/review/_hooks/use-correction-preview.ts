@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useImmer } from "use-immer";
 import {
+  createDocumentCorrectionPreview,
   type DocumentCorners,
-  processDocumentImage,
   transformDocumentImage,
 } from "../_lib/process-document-image";
 
@@ -54,7 +54,7 @@ export function useCorrectionPreview() {
     setStatus("detecting");
 
     try {
-      const processedImage = await processDocumentImage(imageUrl);
+      const processedImage = await createDocumentCorrectionPreview(imageUrl);
 
       setCorrectionPreview({
         corners: processedImage.corners,
