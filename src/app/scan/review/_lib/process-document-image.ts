@@ -16,6 +16,8 @@ export type ProcessedDocumentImage = {
 };
 
 export async function processDocumentImage(imageUrl: string) {
+  console.log("[document-detection] Starting preview processing.");
+
   const image = await loadImage(imageUrl);
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -43,18 +45,68 @@ export async function processDocumentImage(imageUrl: string) {
     0,
     0,
     canvas.width,
-    canvas.height
+    canvas.height,
   );
+
+  const detectedCorners = await detectDocumentCorners(imageUrl);
 
   return {
     blob: await canvasToBlob(canvas),
-    corners: getNormalizedCorners(source, image),
+    corners: detectedCorners
+      ? mapImageCornersToCropCorners(detectedCorners, source, image)
+      : getInsetPreviewCorners(),
   } satisfies ProcessedDocumentImage;
+}
+
+async function detectDocumentCorners(imageUrl: string) {
+  try {
+    console.log("[document-detection] Requesting server-side detection.");
+
+    const imageResponse = await fetch(imageUrl);
+
+    if (!imageResponse.ok) {
+      throw new Error("Could not load captured image for detection.");
+    }
+
+    const imageBlob = await imageResponse.blob();
+    const formData = new FormData();
+
+    formData.set("image", imageBlob, "scan.jpg");
+
+    const detectionResponse = await fetch("/api/document-detection", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!detectionResponse.ok) {
+      throw new Error("Document detection request failed.");
+    }
+
+    const result = (await detectionResponse.json()) as {
+      corners: DocumentCorners | null;
+    };
+
+    if (result.corners) {
+      console.log("[document-detection] Received server-side corners.", {
+        corners: result.corners,
+      });
+    } else {
+      console.log("[document-detection] Server-side detection had no result.");
+    }
+
+    return result.corners;
+  } catch (error) {
+    console.warn(
+      "[document-detection] Falling back to default corners.",
+      error,
+    );
+    return null;
+  }
 }
 
 function getCenteredDocumentCrop(
   image: HTMLImageElement,
-  targetAspectRatio: number
+  targetAspectRatio: number,
 ) {
   let width = image.naturalWidth;
   let height = Math.round(width / targetAspectRatio);
@@ -72,23 +124,33 @@ function getCenteredDocumentCrop(
   };
 }
 
-function getNormalizedCorners(
+function mapImageCornersToCropCorners(
+  corners: DocumentCorners,
   source: ReturnType<typeof getCenteredDocumentCrop>,
-  image: HTMLImageElement
+  image: HTMLImageElement,
 ): DocumentCorners {
-  const left = source.x / image.naturalWidth;
-  const top = source.y / image.naturalHeight;
-  const right = (source.x + source.width) / image.naturalWidth;
-  const bottom = (source.y + source.height) / image.naturalHeight;
-  const insetX = (right - left) * 0.03;
-  const insetY = (bottom - top) * 0.03;
+  return corners.map((corner) => {
+    const x = (corner.x * image.naturalWidth - source.x) / source.width;
+    const y = (corner.y * image.naturalHeight - source.y) / source.height;
 
+    return clampPoint({ x, y });
+  }) as DocumentCorners;
+}
+
+function getInsetPreviewCorners(): DocumentCorners {
   return [
-    { x: left + insetX, y: top + insetY },
-    { x: right - insetX, y: top + insetY },
-    { x: right - insetX, y: bottom - insetY },
-    { x: left + insetX, y: bottom - insetY },
+    { x: 0.03, y: 0.03 },
+    { x: 0.97, y: 0.03 },
+    { x: 0.97, y: 0.97 },
+    { x: 0.03, y: 0.97 },
   ];
+}
+
+function clampPoint(point: DocumentPoint): DocumentPoint {
+  return {
+    x: Math.min(1, Math.max(0, point.x)),
+    y: Math.min(1, Math.max(0, point.y)),
+  };
 }
 
 function loadImage(imageUrl: string) {
@@ -113,7 +175,7 @@ function canvasToBlob(canvas: HTMLCanvasElement) {
         resolve(blob);
       },
       "image/jpeg",
-      0.92
+      0.92,
     );
   });
 }
