@@ -1,5 +1,8 @@
+import { connection } from "next/server";
 import { ReviewScreen } from "./_components/review-screen";
 
-export default function ReviewPage() {
+export default async function ReviewPage() {
+  await connection();
+
   return <ReviewScreen />;
 }

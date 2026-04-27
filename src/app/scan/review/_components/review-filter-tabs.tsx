@@ -11,7 +11,7 @@ const filters = [
 
 export function ReviewFilterTabs() {
   const page = useDraftCurrentPage();
-  const { setCurrentPageFilter } = useScanDraftActions();
+  const { setPageFilter } = useScanDraftActions();
   const activeFilter = page?.filter ?? "original";
 
   return (
@@ -24,7 +24,7 @@ export function ReviewFilterTabs() {
           <button
             key={option.id}
             type="button"
-            onClick={() => setCurrentPageFilter(option.id)}
+            onClick={() => page && setPageFilter(page.id, option.id)}
             disabled={!page}
             className={cn(
               "h-9 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",

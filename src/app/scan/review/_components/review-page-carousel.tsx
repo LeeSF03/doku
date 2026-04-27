@@ -5,14 +5,13 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import {
-  useScanDraftActions,
   useScanDraftStore,
 } from "../../_providers/scan-provider";
+import { useQueryState } from "nuqs";
 
 export function ReviewPageCarousel() {
   const pages = useScanDraftStore((state) => state.pages);
-  const currentPageId = useScanDraftStore((state) => state.currentPageId);
-  const { setCurrentPageId } = useScanDraftActions();
+  const [draftPageId, setDraftPageId] = useQueryState("draft-page-id");
 
   if (pages.length === 0) {
     return (
@@ -22,7 +21,7 @@ export function ReviewPageCarousel() {
     );
   }
 
-  const selectedPageId = currentPageId ?? pages.at(-1)?.id;
+  const selectedPageId = draftPageId ?? pages.at(-1)?.id;
 
   return (
     <div className="mt-5">
@@ -44,7 +43,7 @@ export function ReviewPageCarousel() {
               <CarouselItem key={page.id} className="basis-auto pl-3">
                 <button
                   type="button"
-                  onClick={() => setCurrentPageId(page.id)}
+                  onClick={() => setDraftPageId(page.id)}
                   aria-current={selected ? "page" : undefined}
                   className={cn(
                     "relative h-20 w-16 overflow-hidden rounded-lg border bg-muted transition-colors",

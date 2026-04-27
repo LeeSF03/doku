@@ -17,7 +17,7 @@ type ScanFooterProps = {
 
 export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
   const router = useRouter();
-  const [draftId] = useQueryState("draft-id");
+  const [replacePageId] = useQueryState("replace-page-id");
   const [capturePending, setCapturePending] = useState(false);
   const pageCount = useScanDraftStore((state) => state.pages.length);
   const { appendPage, upsertPage } = useScanDraftActions();
@@ -29,19 +29,19 @@ export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
       const blob = await captureFrame();
       const imageUrl = URL.createObjectURL(blob);
       const page = {
-        id: draftId ?? crypto.randomUUID(),
+        id: replacePageId ?? crypto.randomUUID(),
         imageUrl,
         rotation: 0,
         filter: "original" as const,
       };
 
-      if (draftId) {
+      if (replacePageId) {
         upsertPage(page);
       } else {
         appendPage(page);
       }
 
-      router.push("/scan/review");
+      router.push(`/scan/review?draft-page-id=${encodeURIComponent(page.id)}`);
     } catch (error) {
       toast.error("Could not capture page", {
         description:

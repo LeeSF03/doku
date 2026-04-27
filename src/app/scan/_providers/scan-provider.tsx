@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { createStore } from "zustand/vanilla";
 
@@ -22,7 +17,6 @@ type ScanDraftState = {
   draftId: string;
   auto: boolean;
   pages: ScanDraftPage[];
-  currentPageId: string | null;
   actions: ScanDraftActions;
 };
 
@@ -31,9 +25,8 @@ type ScanDraftActions = {
   appendPage: (page: ScanDraftPage) => void;
   upsertPage: (page: ScanDraftPage) => void;
   replacePageImage: (pageId: string, imageUrl: string) => void;
-  rotateCurrentPage: () => void;
-  setCurrentPageFilter: (filter: ScanFilterId) => void;
-  setCurrentPageId: (pageId: string | null) => void;
+  rotatePage: (pageId: string) => void;
+  setPageFilter: (pageId: string, filter: ScanFilterId) => void;
   resetDraft: () => void;
 };
 
@@ -41,7 +34,6 @@ const initialScanDraftState = {
   draftId: "draft",
   auto: false,
   pages: [] as ScanDraftPage[],
-  currentPageId: null,
 };
 
 type ScanDraftStore = ReturnType<typeof createScanDraftStore>;
@@ -59,7 +51,7 @@ export function ScanProvider({ children }: { children: ReactNode }) {
 }
 
 export function useScanDraftStore<T>(
-  selector: (state: Omit<ScanDraftState, "actions">) => T
+  selector: (state: Omit<ScanDraftState, "actions">) => T,
 ) {
   const store = useContext(ScanDraftStoreContext);
 
@@ -88,39 +80,36 @@ function createScanDraftStore() {
       appendPage: (page) =>
         set((state) => ({
           pages: [...state.pages, page],
-          currentPageId: page.id,
         })),
       upsertPage: (page) =>
         set((state) => {
           const pageExists = state.pages.some(
-            (draftPage) => draftPage.id === page.id
+            (draftPage) => draftPage.id === page.id,
           );
 
           return {
             pages: pageExists
               ? state.pages.map((draftPage) =>
-                  draftPage.id === page.id ? page : draftPage
+                  draftPage.id === page.id ? page : draftPage,
                 )
               : [...state.pages, page],
-            currentPageId: page.id,
           };
         }),
       replacePageImage: (pageId, imageUrl) =>
         set((state) => ({
           pages: state.pages.map((page) =>
-            page.id === pageId ? { ...page, imageUrl } : page
+            page.id === pageId ? { ...page, imageUrl } : page,
           ),
         })),
-      rotateCurrentPage: () =>
-        set((state) => updateCurrentPage(state, rotatePage)),
-      setCurrentPageFilter: (filter) =>
+      rotatePage: (pageId) =>
+        set((state) => updatePageById(state, pageId, rotatePage)),
+      setPageFilter: (pageId, filter) =>
         set((state) =>
-          updateCurrentPage(state, (page) => ({
+          updatePageById(state, pageId, (page) => ({
             ...page,
             filter,
-          }))
+          })),
         ),
-      setCurrentPageId: (currentPageId) => set({ currentPageId }),
       resetDraft: () => set(initialScanDraftState),
     },
   }));
@@ -133,17 +122,14 @@ function rotatePage(page: ScanDraftPage): ScanDraftPage {
   };
 }
 
-function updateCurrentPage(
+function updatePageById(
   state: ScanDraftState,
-  updatePage: (page: ScanDraftPage) => ScanDraftPage
+  pageId: string,
+  updatePage: (page: ScanDraftPage) => ScanDraftPage,
 ) {
-  const currentPageId = state.currentPageId ?? state.pages.at(-1)?.id;
-
-  if (!currentPageId) return state;
-
   return {
     pages: state.pages.map((page) =>
-      page.id === currentPageId ? updatePage(page) : page
+      page.id === pageId ? updatePage(page) : page,
     ),
   };
 }

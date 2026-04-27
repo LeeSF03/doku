@@ -8,12 +8,12 @@ import { useDraftCurrentPage } from "../_hooks/use-draft-current-page";
 export function ReviewToolbar() {
   const router = useRouter();
   const currentPage = useDraftCurrentPage();
-  const { rotateCurrentPage } = useScanDraftActions();
+  const { rotatePage } = useScanDraftActions();
 
   const handleRetake = () => {
     if (!currentPage) return;
 
-    router.push(`/scan?draft-id=${encodeURIComponent(currentPage.id)}`);
+    router.push(`/scan?replace-page-id=${encodeURIComponent(currentPage.id)}`);
   };
 
   return (
@@ -21,7 +21,7 @@ export function ReviewToolbar() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={rotateCurrentPage}
+        onClick={() => currentPage && rotatePage(currentPage.id)}
         disabled={!currentPage}
         className="gap-1.5"
       >
