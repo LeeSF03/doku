@@ -20,7 +20,7 @@ export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
   const [replacePageId] = useQueryState("replace-page-id");
   const [capturePending, setCapturePending] = useState(false);
   const pageCount = useScanDraftStore((state) => state.pages.length);
-  const { appendPage, upsertPage } = useScanDraftActions();
+  const { upsertPage } = useScanDraftActions();
 
   const handleCapture = async () => {
     setCapturePending(true);
@@ -35,12 +35,7 @@ export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
         filter: "original" as const,
       };
 
-      if (replacePageId) {
-        upsertPage(page);
-      } else {
-        appendPage(page);
-      }
-
+      upsertPage(page);
       router.push(`/scan/review?draft-page-id=${encodeURIComponent(page.id)}`);
     } catch (error) {
       toast.error("Could not capture page", {

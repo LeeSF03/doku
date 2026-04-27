@@ -22,7 +22,6 @@ type ScanDraftState = {
 
 type ScanDraftActions = {
   toggleAuto: () => void;
-  appendPage: (page: ScanDraftPage) => void;
   upsertPage: (page: ScanDraftPage) => void;
   replacePageImage: (pageId: string, imageUrl: string) => void;
   rotatePage: (pageId: string) => void;
@@ -77,10 +76,6 @@ function createScanDraftStore() {
     ...initialScanDraftState,
     actions: {
       toggleAuto: () => set((state) => ({ auto: !state.auto })),
-      appendPage: (page) =>
-        set((state) => ({
-          pages: [...state.pages, page],
-        })),
       upsertPage: (page) =>
         set((state) => {
           const pageExists = state.pages.some(
