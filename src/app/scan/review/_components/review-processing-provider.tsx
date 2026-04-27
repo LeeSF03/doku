@@ -46,7 +46,7 @@ export function ReviewProcessingProvider({
   const currentPage = useDraftCurrentPage();
 
   return (
-    <ReviewProcessingProviderInner key={currentPage?.id ?? "empty"}>
+    <ReviewProcessingProviderInner key={currentPage?.id}>
       {children}
     </ReviewProcessingProviderInner>
   );

@@ -27,10 +27,11 @@ export function ReviewPreview() {
           }
         >
           {imageUrl && page ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={imageUrl}
               alt={previewImageUrl ? "Processed scan preview" : "Captured scan"}
+              fill
+              unoptimized
               className={cn(
                 "h-full w-full object-cover transition-transform",
                 `rotate-[${page.rotation}]`,

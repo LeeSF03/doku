@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { useQueryState } from "nuqs";
@@ -72,15 +73,15 @@ export function ReviewPageCarousel() {
                         : "border-border hover:border-foreground/40",
                     )}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={page.imageUrl}
                       alt={`Page ${index + 1}`}
+                      fill
+                      unoptimized
+                      sizes="64px"
+                      data-filter={page.filter}
                       className={cn(
-                        "h-full w-full object-cover",
-                        page.filter === "bw" && "contrast-150 grayscale",
-                        page.filter === "grayscale" && "grayscale",
-                        page.filter === "color" && "saturate-150",
+                        "object-cover data-[filter=none]:bg-transparent data-[filter=bw]:bg-zinc-100 data-[filter=bw]:contrast-150 data-[filter=grayscale]:grayscale data-[filter=color]:saturate-150",
                       )}
                       style={{ transform: `rotate(${page.rotation}deg)` }}
                     />
@@ -89,7 +90,7 @@ export function ReviewPageCarousel() {
                     </span>
                   </button>
 
-                  {selected ? (
+                  {selected && (
                     <button
                       type="button"
                       onClick={() => handleRemovePage(page.id)}
@@ -98,7 +99,7 @@ export function ReviewPageCarousel() {
                     >
                       <Trash2 className="size-3.5" />
                     </button>
-                  ) : null}
+                  )}
                 </div>
               </CarouselItem>
             );

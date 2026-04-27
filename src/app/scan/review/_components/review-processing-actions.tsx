@@ -6,7 +6,6 @@ import { useReviewProcessing } from "./review-processing-provider";
 export function ReviewProcessingActions() {
   const currentPage = useDraftCurrentPage();
   const {
-    errorMessage,
     preview,
     processCurrentPage,
     replaceCurrentPage,
@@ -30,36 +29,29 @@ export function ReviewProcessingActions() {
           {processing ? "Processing" : "Correct"}
         </Button>
 
-        {preview ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={replaceCurrentPage}
-            className="flex-1 gap-1.5"
-          >
-            <Check className="size-4" />
-            Apply
-          </Button>
-        ) : null}
-
-        {preview ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={resetProcessingPreview}
-            aria-label="Discard correction preview"
-          >
-            <X className="size-4" />
-          </Button>
-        ) : null}
+        {preview && (
+          <>
+            <Button
+              type="button"
+              size="sm"
+              onClick={replaceCurrentPage}
+              className="flex-1 gap-1.5"
+            >
+              <Check className="size-4" />
+              Apply
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={resetProcessingPreview}
+              aria-label="Discard correction preview"
+            >
+              <X className="size-4" />
+            </Button>
+          </>
+        )}
       </div>
-
-      {status === "failed" ? (
-        <p className="px-1 text-xs text-destructive">
-          {errorMessage ?? "Could not process the page."}
-        </p>
-      ) : null}
     </div>
   );
 }
