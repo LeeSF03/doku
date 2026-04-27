@@ -23,6 +23,7 @@ type ScanDraftState = {
 type ScanDraftActions = {
   toggleAuto: () => void;
   upsertPage: (page: ScanDraftPage) => void;
+  removePage: (pageId: string) => void;
   replacePageImage: (pageId: string, imageUrl: string) => void;
   rotatePage: (pageId: string) => void;
   setPageFilter: (pageId: string, filter: ScanFilterId) => void;
@@ -90,6 +91,10 @@ function createScanDraftStore() {
               : [...state.pages, page],
           };
         }),
+      removePage: (pageId) =>
+        set((state) => ({
+          pages: state.pages.filter((page) => page.id !== pageId),
+        })),
       replacePageImage: (pageId, imageUrl) =>
         set((state) => ({
           pages: state.pages.map((page) =>

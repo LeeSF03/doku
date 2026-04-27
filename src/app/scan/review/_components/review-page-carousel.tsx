@@ -1,3 +1,6 @@
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+import { useQueryState } from "nuqs";
 import { cn } from "@/lib/utils";
 import {
   Carousel,
@@ -5,13 +8,15 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import {
+  useScanDraftActions,
   useScanDraftStore,
 } from "../../_providers/scan-provider";
-import { useQueryState } from "nuqs";
 
 export function ReviewPageCarousel() {
+  const router = useRouter();
   const pages = useScanDraftStore((state) => state.pages);
   const [draftPageId, setDraftPageId] = useQueryState("draft-page-id");
+  const { removePage } = useScanDraftActions();
 
   if (pages.length === 0) {
     return (
@@ -22,6 +27,20 @@ export function ReviewPageCarousel() {
   }
 
   const selectedPageId = draftPageId ?? pages.at(-1)?.id;
+
+  const handleRemovePage = async (pageId: string) => {
+    const pageIndex = pages.findIndex((page) => page.id === pageId);
+    const nextSelectedPage = pages[pageIndex + 1] ?? pages[pageIndex - 1];
+
+    removePage(pageId);
+
+    if (nextSelectedPage) {
+      await setDraftPageId(nextSelectedPage.id);
+    } else {
+      await setDraftPageId(null);
+      router.replace("/scan");
+    }
+  };
 
   return (
     <div className="mt-5">
@@ -41,33 +60,46 @@ export function ReviewPageCarousel() {
 
             return (
               <CarouselItem key={page.id} className="basis-auto pl-3">
-                <button
-                  type="button"
-                  onClick={() => setDraftPageId(page.id)}
-                  aria-current={selected ? "page" : undefined}
-                  className={cn(
-                    "relative h-20 w-16 overflow-hidden rounded-lg border bg-muted transition-colors",
-                    selected
-                      ? "border-foreground ring-2 ring-foreground/20"
-                      : "border-border hover:border-foreground/40"
-                  )}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={page.imageUrl}
-                    alt={`Page ${index + 1}`}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setDraftPageId(page.id)}
+                    aria-current={selected ? "page" : undefined}
                     className={cn(
-                      "h-full w-full object-cover",
-                      page.filter === "bw" && "contrast-150 grayscale",
-                      page.filter === "grayscale" && "grayscale",
-                      page.filter === "color" && "saturate-150"
+                      "relative h-20 w-16 overflow-hidden rounded-lg border bg-muted transition-colors",
+                      selected
+                        ? "border-foreground ring-2 ring-foreground/20"
+                        : "border-border hover:border-foreground/40",
                     )}
-                    style={{ transform: `rotate(${page.rotation}deg)` }}
-                  />
-                  <span className="absolute bottom-1 left-1 rounded bg-background/85 px-1.5 py-0.5 text-[10px] font-medium text-foreground shadow-sm">
-                    {index + 1}
-                  </span>
-                </button>
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={page.imageUrl}
+                      alt={`Page ${index + 1}`}
+                      className={cn(
+                        "h-full w-full object-cover",
+                        page.filter === "bw" && "contrast-150 grayscale",
+                        page.filter === "grayscale" && "grayscale",
+                        page.filter === "color" && "saturate-150",
+                      )}
+                      style={{ transform: `rotate(${page.rotation}deg)` }}
+                    />
+                    <span className="absolute bottom-1 left-1 rounded bg-background/85 px-1.5 py-0.5 text-[10px] font-medium text-foreground shadow-sm">
+                      {index + 1}
+                    </span>
+                  </button>
+
+                  {selected ? (
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePage(page.id)}
+                      aria-label={`Remove page ${index + 1}`}
+                      className="absolute -right-2 -top-2 grid size-7 place-items-center rounded-full border border-destructive/20 bg-background text-destructive shadow-sm transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  ) : null}
+                </div>
               </CarouselItem>
             );
           })}
