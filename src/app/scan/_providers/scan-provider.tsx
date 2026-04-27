@@ -9,8 +9,6 @@ import {
 import { useStore } from "zustand";
 import { createStore } from "zustand/vanilla";
 
-export type ScanMode = "document" | "id" | "photo";
-
 export type ScanFilterId = "original" | "bw" | "grayscale" | "color";
 
 export type ScanDraftPage = {
@@ -22,7 +20,6 @@ export type ScanDraftPage = {
 
 type ScanDraftState = {
   draftId: string;
-  mode: ScanMode;
   auto: boolean;
   pages: ScanDraftPage[];
   currentPageId: string | null;
@@ -30,7 +27,6 @@ type ScanDraftState = {
 };
 
 type ScanDraftActions = {
-  setMode: (mode: ScanMode) => void;
   toggleAuto: () => void;
   appendPage: (page: ScanDraftPage) => void;
   replacePageImage: (pageId: string, imageUrl: string) => void;
@@ -42,7 +38,6 @@ type ScanDraftActions = {
 
 const initialScanDraftState = {
   draftId: "draft",
-  mode: "document" as ScanMode,
   auto: false,
   pages: [] as ScanDraftPage[],
   currentPageId: null,
@@ -88,7 +83,6 @@ function createScanDraftStore() {
   return createStore<ScanDraftState>()((set) => ({
     ...initialScanDraftState,
     actions: {
-      setMode: (mode) => set({ mode }),
       toggleAuto: () => set((state) => ({ auto: !state.auto })),
       appendPage: (page) =>
         set((state) => ({

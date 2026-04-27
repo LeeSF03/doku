@@ -52,12 +52,6 @@ export function ReviewPreview() {
           </div>
         )}
       </div>
-
-      {previewImageUrl && (
-        <p className="mt-2 text-center text-xs text-muted-foreground">
-          Showing detected document area
-        </p>
-      )}
     </div>
   );
 }

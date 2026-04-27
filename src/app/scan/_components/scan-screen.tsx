@@ -4,7 +4,6 @@ import { useCameraPreview } from "../_hooks/use-camera-preview";
 import { CameraPreview } from "./camera-preview";
 import { ScanFooter } from "./scan-footer";
 import { ScanHeader } from "./scan-header";
-import { ScanModeTabs } from "./scan-mode-tabs";
 
 export function ScanScreen() {
   const { captureFrame, cameraErrorMessage, cameraState, videoRef } =
@@ -20,11 +19,7 @@ export function ScanScreen() {
         videoRef={videoRef}
       />
 
-      <div className="flex flex-col gap-5 px-4 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-3">
-        <div className="flex justify-center">
-          <ScanModeTabs />
-        </div>
-
+      <div className="px-4 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-3">
         <ScanFooter cameraState={cameraState} captureFrame={captureFrame} />
       </div>
     </div>
