@@ -2,22 +2,28 @@ import Link from "next/link";
 import { Check, Plus, WandSparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type ScanDraftPage } from "../../_providers/scan-provider";
-import { useReviewProcessing } from "./review-processing-provider";
+import {
+  type CorrectionPreview,
+  type PreviewCorrectionStatus,
+} from "../_hooks/use-correction-preview";
 
 export function ReviewPrimaryActionBar({
+  createCorrectionPreview,
+  createCorrectedImage,
   currentPage,
+  preview,
+  clearCorrectionPreview,
+  status,
 }: {
+  createCorrectionPreview: () => Promise<void>;
+  createCorrectedImage: () => Promise<void>;
   currentPage: ScanDraftPage | null;
+  preview: CorrectionPreview | null;
+  clearCorrectionPreview: () => void;
+  status: PreviewCorrectionStatus;
 }) {
-  const {
-    preview,
-    processCurrentPage,
-    replaceCurrentPage,
-    resetProcessingPreview,
-    status,
-  } = useReviewProcessing();
-  const processing = status === "processing";
-  const applying = status === "applying";
+  const detecting = status === "detecting";
+  const transforming = status === "transforming";
 
   return (
     <div className="mt-4 space-y-2">
@@ -27,19 +33,19 @@ export function ReviewPrimaryActionBar({
             <Button
               type="button"
               size="sm"
-              onClick={replaceCurrentPage}
-              disabled={applying}
+              onClick={createCorrectedImage}
+              disabled={transforming}
               className="flex-1 gap-1.5"
             >
               <Check className="size-4" />
-              {applying ? "Applying" : "Apply"}
+              {transforming ? "Applying" : "Apply"}
             </Button>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={resetProcessingPreview}
-              disabled={applying}
+              onClick={clearCorrectionPreview}
+              disabled={transforming}
               className="flex-1 gap-1.5"
             >
               <X className="size-4" />
@@ -52,12 +58,12 @@ export function ReviewPrimaryActionBar({
               type="button"
               variant="outline"
               size="sm"
-              onClick={processCurrentPage}
-              disabled={!currentPage || processing}
+              onClick={createCorrectionPreview}
+              disabled={!currentPage || detecting}
               className="flex-1 gap-1.5"
             >
               <WandSparkles className="size-4" />
-              {processing ? "Processing" : "Correct"}
+              {detecting ? "Processing" : "Correct"}
             </Button>
             <Button
               asChild

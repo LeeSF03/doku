@@ -5,10 +5,8 @@ import { useScanDraftStore } from "../../_providers/scan-provider";
 import { ReviewHeader } from "./review-header";
 import { ReviewPageCarousel } from "./review-page-carousel";
 import { ReviewPreview } from "./review-preview";
-import { ReviewProcessingProvider } from "./review-processing-provider";
 import { ReviewSaveBar } from "./review-save-bar";
 import { ReviewToolbar } from "./review-toolbar";
-import { ReviewPrimaryActionBar } from "./review-primary-actions-bar";
 
 export function ReviewScreen() {
   const [draftPageId] = useQueryState("draft-page-id");
@@ -27,13 +25,7 @@ export function ReviewScreen() {
       <ReviewHeader />
 
       <main className="flex-1 px-5 pb-48 pt-4">
-        <ReviewProcessingProvider
-          key={currentPage?.id}
-          currentPage={currentPage}
-        >
-          <ReviewPreview page={currentPage} />
-          <ReviewPrimaryActionBar currentPage={currentPage} />
-        </ReviewProcessingProvider>
+        <ReviewPreview key={currentPage?.id} page={currentPage} />
         <ReviewPageCarousel />
         <ReviewToolbar currentPage={currentPage} />
       </main>
