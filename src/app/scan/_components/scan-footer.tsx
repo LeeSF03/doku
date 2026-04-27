@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Images } from "lucide-react";
@@ -19,7 +20,8 @@ export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
   const router = useRouter();
   const [replacePageId] = useQueryState("replace-page-id");
   const [capturePending, setCapturePending] = useState(false);
-  const pageCount = useScanDraftStore((state) => state.pages.length);
+  const pages = useScanDraftStore((state) => state.pages);
+  const pageCount = pages.length;
   const { upsertPage } = useScanDraftActions();
 
   const handleCapture = async () => {
@@ -47,17 +49,35 @@ export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
     }
   };
 
+  const canOpenReview = pageCount > 0;
+
   return (
     <div className="grid grid-cols-3 items-center">
       <div className="flex justify-start">
-        <Button
-          variant="ghost"
-          size="icon-lg"
-          aria-label="Open gallery"
-          className="rounded-xl text-white hover:bg-white/10 hover:text-white"
-        >
-          <Images className="size-6" />
-        </Button>
+        {canOpenReview ? (
+          <Button
+            asChild
+            variant="ghost"
+            size="icon-lg"
+            aria-label="Open review"
+            className="rounded-xl text-white hover:bg-white/10 hover:text-white"
+          >
+            <Link href="/scan/review">
+              <Images className="size-6" />
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-lg"
+            disabled
+            aria-label="Open review"
+            className="rounded-xl text-muted-foreground/50 disabled:opacity-100"
+          >
+            <Images className="size-6" />
+          </Button>
+        )}
       </div>
 
       <div className="flex justify-center">
