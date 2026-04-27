@@ -9,6 +9,9 @@ MAX_DETECTION_SIZE = 1000
 MIN_AREA_RATIO = 0.05
 MAX_AREA_RATIO = 0.95
 MIN_SIDE_LENGTH_RATIO = 0.12
+SIDE_REFINEMENT_BAND_RATIO = 0.025
+LINE_REFINEMENT_OUTER_BAND_RATIO = 0.08
+LINE_REFINEMENT_INNER_BAND_RATIO = 0.015
 
 
 def main() -> int:
@@ -104,7 +107,8 @@ def detect_document_corners(image: np.ndarray):
         file=sys.stderr,
     )
 
-    ordered = order_corners(points)
+    ordered = refine_corners(gray, order_corners(points))
+
     return [
         {"x": clamp(point[0] / width), "y": clamp(point[1] / height)}
         for point in ordered
@@ -151,6 +155,337 @@ def build_detection_masks(gray: np.ndarray):
         ("adaptive-inverse", inverse_adaptive),
         ("otsu", otsu),
     )
+
+
+def refine_corners(gray: np.ndarray, corners: list[np.ndarray]) -> list[np.ndarray]:
+    height, width = gray.shape[:2]
+    band_width = max(6.0, min(width, height) * SIDE_REFINEMENT_BAND_RATIO)
+    outer_band_width = max(12.0, min(width, height) * LINE_REFINEMENT_OUTER_BAND_RATIO)
+    inner_band_width = max(4.0, min(width, height) * LINE_REFINEMENT_INNER_BAND_RATIO)
+    line_segments = detect_line_segments(gray)
+    lines = []
+
+    print(
+        f"[document-detection:python] Line segments: {len(line_segments)}",
+        file=sys.stderr,
+    )
+
+    center = np.mean(np.array(corners), axis=0)
+
+    for index in range(len(corners)):
+        start = corners[index]
+        end = corners[(index + 1) % len(corners)]
+        line = fit_line_segment_near_side(
+            line_segments,
+            start,
+            end,
+            center,
+            inner_band_width,
+            outer_band_width,
+        )
+
+        if line is None:
+            line = fit_brightness_transition_line_near_side(
+                gray,
+                start,
+                end,
+                center,
+                band_width,
+            )
+
+        lines.append(line if line is not None else line_from_points(start, end))
+
+    refined = []
+
+    for index in range(len(lines)):
+        previous_line = lines[index - 1]
+        current_line = lines[index]
+        intersection = intersect_lines(previous_line, current_line)
+
+        if intersection is None:
+            return corners
+
+        x, y = intersection
+
+        if x < -band_width or x > width + band_width:
+            return corners
+
+        if y < -band_width or y > height + band_width:
+            return corners
+
+        refined.append(np.array([clamp(x / width) * width, clamp(y / height) * height]))
+
+    if not is_refinement_reasonable(corners, refined, width, height):
+        print(
+            "[document-detection:python] Side refinement rejected.",
+            file=sys.stderr,
+        )
+        return corners
+
+    print(
+        "[document-detection:python] Side refinement applied.",
+        file=sys.stderr,
+    )
+    return refined
+
+
+def detect_line_segments(gray: np.ndarray) -> list[tuple[np.ndarray, np.ndarray]]:
+    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+    detector = cv2.createLineSegmentDetector()
+    detected = detector.detect(blurred)[0]
+
+    if detected is None:
+        return []
+
+    return [
+        (np.array([x1, y1], dtype=float), np.array([x2, y2], dtype=float))
+        for x1, y1, x2, y2 in detected.reshape(-1, 4)
+    ]
+
+
+def fit_line_segment_near_side(
+    line_segments: list[tuple[np.ndarray, np.ndarray]],
+    start: np.ndarray,
+    end: np.ndarray,
+    center: np.ndarray,
+    inner_band_width: float,
+    outer_band_width: float,
+):
+    side_vector = end - start
+    side_length = np.linalg.norm(side_vector)
+
+    if side_length == 0:
+        return None
+
+    unit_side = side_vector / side_length
+    normal = np.array([-unit_side[1], unit_side[0]])
+
+    if np.dot(center - start, normal) > 0:
+        normal = -normal
+
+    candidates = []
+
+    for point_a, point_b in line_segments:
+        segment_vector = point_b - point_a
+        segment_length = np.linalg.norm(segment_vector)
+
+        if segment_length < max(16.0, side_length * 0.12):
+            continue
+
+        unit_segment = segment_vector / segment_length
+        parallel_score = abs(float(np.dot(unit_segment, unit_side)))
+
+        if parallel_score < 0.92:
+            continue
+
+        midpoint = (point_a + point_b) / 2
+        midpoint_relative = midpoint - start
+        midpoint_projection = float(midpoint_relative @ unit_side)
+        signed_distance = float(midpoint_relative @ normal)
+
+        if midpoint_projection < -side_length * 0.2:
+            continue
+
+        if midpoint_projection > side_length * 1.2:
+            continue
+
+        if signed_distance < -inner_band_width:
+            continue
+
+        if signed_distance > outer_band_width:
+            continue
+
+        endpoint_projections = np.array(
+            [
+                float((point_a - start) @ unit_side),
+                float((point_b - start) @ unit_side),
+            ]
+        )
+        overlap_start = max(0.0, float(np.min(endpoint_projections)))
+        overlap_end = min(side_length, float(np.max(endpoint_projections)))
+        overlap = max(0.0, overlap_end - overlap_start)
+        overlap_ratio = overlap / side_length
+
+        if overlap_ratio < 0.08:
+            continue
+
+        outward_score = max(0.0, signed_distance / outer_band_width)
+        length_score = min(1.0, segment_length / side_length)
+        score = (
+            outward_score * 2.5
+            + length_score * 1.4
+            + overlap_ratio * 1.2
+            + parallel_score
+        )
+
+        candidates.append(
+            {
+                "points": (point_a, point_b),
+                "distance": signed_distance,
+                "score": score,
+            }
+        )
+
+    if not candidates:
+        return None
+
+    best = max(candidates, key=lambda candidate: candidate["score"])
+    selected_points = []
+
+    for candidate in candidates:
+        if candidate["distance"] < best["distance"] - outer_band_width * 0.25:
+            continue
+
+        point_a, point_b = candidate["points"]
+        selected_points.extend((point_a, point_b))
+
+    if len(selected_points) < 2:
+        return None
+
+    line = cv2.fitLine(
+        np.array(selected_points, dtype=np.float32),
+        cv2.DIST_L2,
+        0,
+        0.01,
+        0.01,
+    )
+    vx, vy, x, y = [float(value) for value in line.flatten()]
+    return standard_line_from_point_vector(np.array([x, y]), np.array([vx, vy]))
+
+
+def fit_brightness_transition_line_near_side(
+    gray: np.ndarray,
+    start: np.ndarray,
+    end: np.ndarray,
+    center: np.ndarray,
+    band_width: float,
+):
+    height, width = gray.shape[:2]
+    side_vector = end - start
+    side_length = np.linalg.norm(side_vector)
+
+    if side_length == 0:
+        return None
+
+    unit_side = side_vector / side_length
+    normal = np.array([-unit_side[1], unit_side[0]])
+
+    if np.dot(center - start, normal) > 0:
+        normal = -normal
+
+    offsets = np.linspace(-band_width * 0.25, band_width * 1.75, 48)
+    transition_points = []
+
+    for side_position in np.linspace(0.08, 0.92, 28):
+        base_point = start + unit_side * side_length * side_position
+        samples = []
+        sample_offsets = []
+
+        for offset in offsets:
+            sample_point = base_point + normal * offset
+            sample_x = int(round(sample_point[0]))
+            sample_y = int(round(sample_point[1]))
+
+            if sample_x < 0 or sample_x >= width or sample_y < 0 or sample_y >= height:
+                continue
+
+            samples.append(float(gray[sample_y, sample_x]))
+            sample_offsets.append(offset)
+
+        if len(samples) < 8:
+            continue
+
+        samples_array = np.array(samples)
+        offsets_array = np.array(sample_offsets)
+        inside_mean = float(np.mean(samples_array[: max(2, len(samples_array) // 5)]))
+        outside_mean = float(np.mean(samples_array[-max(2, len(samples_array) // 5) :]))
+
+        if inside_mean >= outside_mean:
+            gradients = samples_array[:-1] - samples_array[1:]
+        else:
+            gradients = samples_array[1:] - samples_array[:-1]
+
+        strongest_index = int(np.argmax(gradients))
+        strongest_gradient = gradients[strongest_index]
+
+        if strongest_gradient < 5:
+            continue
+
+        edge_offset = (
+            offsets_array[strongest_index] + offsets_array[strongest_index + 1]
+        ) / 2
+        transition_points.append(base_point + normal * edge_offset)
+
+    if len(transition_points) < 8:
+        return None
+
+    line = cv2.fitLine(
+        np.array(transition_points, dtype=np.float32),
+        cv2.DIST_L2,
+        0,
+        0.01,
+        0.01,
+    )
+    vx, vy, x, y = [float(value) for value in line.flatten()]
+    return standard_line_from_point_vector(np.array([x, y]), np.array([vx, vy]))
+
+
+def line_from_points(start: np.ndarray, end: np.ndarray):
+    return standard_line_from_point_vector(start, end - start)
+
+
+def standard_line_from_point_vector(point: np.ndarray, vector: np.ndarray):
+    a = float(vector[1])
+    b = float(-vector[0])
+    c = float(-(a * point[0] + b * point[1]))
+    norm = np.hypot(a, b)
+
+    if norm == 0:
+        return None
+
+    return (a / norm, b / norm, c / norm)
+
+
+def intersect_lines(line_a, line_b):
+    if line_a is None or line_b is None:
+        return None
+
+    a1, b1, c1 = line_a
+    a2, b2, c2 = line_b
+    denominator = a1 * b2 - a2 * b1
+
+    if abs(denominator) < 1e-6:
+        return None
+
+    x = (b1 * c2 - b2 * c1) / denominator
+    y = (c1 * a2 - c2 * a1) / denominator
+    return (x, y)
+
+
+def is_refinement_reasonable(
+    original: list[np.ndarray],
+    refined: list[np.ndarray],
+    width: int,
+    height: int,
+) -> bool:
+    original_area = abs(cv2.contourArea(np.array(original, dtype=np.float32)))
+    refined_area = abs(cv2.contourArea(np.array(refined, dtype=np.float32)))
+
+    if original_area == 0:
+        return False
+
+    area_ratio = refined_area / original_area
+
+    if area_ratio < 0.8 or area_ratio > 1.25:
+        return False
+
+    max_shift = min(width, height) * 0.08
+
+    for original_point, refined_point in zip(original, refined):
+        if distance(original_point, refined_point) > max_shift:
+            return False
+
+    return True
 
 
 def score_document_candidate(points: np.ndarray, width: int, height: int):
