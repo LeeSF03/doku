@@ -2,7 +2,6 @@
 
 import { useQueryState } from "nuqs";
 import { useScanDraftStore } from "../../_providers/scan-provider";
-import { ReviewAddPageButton } from "./review-add-page-button";
 import { ReviewFilterTabs } from "./review-filter-tabs";
 import { ReviewHeader } from "./review-header";
 import { ReviewPageCarousel } from "./review-page-carousel";
@@ -34,7 +33,6 @@ export function ReviewScreen() {
         <ReviewPageCarousel />
         <ReviewToolbar currentPage={currentPage} />
         <ReviewFilterTabs page={currentPage} />
-        <ReviewAddPageButton />
       </main>
 
       <ReviewSaveBar />

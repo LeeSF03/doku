@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { type ScanDraftPage } from "../../_providers/scan-provider";
 import { ReviewDocumentEdgeOverlay } from "./review-document-edge-overlay";
 import { useReviewProcessing } from "./review-processing-provider";
-import { ReviewProcessingActions } from "./review-processing-actions";
+import { ReviewPrimaryActionsBar } from "./review-primary-actions-bar";
 
 export function ReviewPreview({ page }: { page: ScanDraftPage | null }) {
   const { preview, status, updatePreviewCorner } = useReviewProcessing();
@@ -55,7 +55,7 @@ export function ReviewPreview({ page }: { page: ScanDraftPage | null }) {
         </div>
       </div>
 
-      <ReviewProcessingActions currentPage={page} />
+      <ReviewPrimaryActionsBar currentPage={page} />
     </>
   );
 }
