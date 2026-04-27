@@ -29,7 +29,6 @@ type ProcessingPreview = {
 };
 
 type ReviewProcessingContextValue = {
-  errorMessage: string | null;
   preview: ProcessingPreview | null;
   processCurrentPage: () => Promise<void>;
   replaceCurrentPage: () => Promise<void>;
@@ -50,7 +49,6 @@ export function ReviewProcessingProvider({
 }) {
   const { replacePageImage } = useScanDraftActions();
   const [status, setStatus] = useState<ProcessingStatus>("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [preview, setPreview] = useState<ProcessingPreview | null>(null);
   const previewRef = useRef<ProcessingPreview | null>(null);
 
@@ -69,7 +67,6 @@ export function ReviewProcessingProvider({
     if (!currentPage || status === "processing") return;
 
     setStatus("processing");
-    setErrorMessage(null);
 
     try {
       const processedImage = await processDocumentImage(currentPage.imageUrl);
@@ -91,7 +88,6 @@ export function ReviewProcessingProvider({
           : "Could not process this document.";
 
       setStatus("failed");
-      setErrorMessage(message);
       toast.error("Document processing failed", {
         description: message,
       });
@@ -101,7 +97,6 @@ export function ReviewProcessingProvider({
   async function replaceCurrentPage() {
     if (!preview || status === "applying") return;
 
-    setErrorMessage(null);
     setStatus("applying");
 
     try {
@@ -123,7 +118,6 @@ export function ReviewProcessingProvider({
           : "Could not transform this document.";
 
       setStatus("failed");
-      setErrorMessage(message);
       toast.error("Document transform failed", {
         description: message,
       });
@@ -136,7 +130,6 @@ export function ReviewProcessingProvider({
     }
     setProcessingPreview(null);
     setStatus("idle");
-    setErrorMessage(null);
   }
 
   function updatePreviewCorner(cornerIndex: number, point: DocumentPoint) {
@@ -155,7 +148,6 @@ export function ReviewProcessingProvider({
   return (
     <ReviewProcessingContext.Provider
       value={{
-        errorMessage,
         preview,
         processCurrentPage,
         replaceCurrentPage,

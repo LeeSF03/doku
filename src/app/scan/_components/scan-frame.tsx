@@ -15,12 +15,12 @@ export function ScanFrame({
 }: ScanFrameProps) {
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-3">
-      <div className="relative aspect-[3/4] w-full">
+      <div className="relative aspect-3/4 w-full">
         <div className="absolute inset-0 overflow-hidden rounded-[28px] border border-white/12 bg-zinc-950">
           {children}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/35" />
+          <div className="absolute inset-0 bg-linear-to-b from-black/30 via-transparent to-black/35" />
 
-          {cameraState !== "ready" ? (
+          {cameraState !== "ready" && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/55 px-6 text-center">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-white">
@@ -33,10 +33,10 @@ export function ScanFrame({
                 </p>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
 
-        <div className="pointer-events-none absolute inset-3 rounded-[24px] border border-white/8" />
+        <div className="pointer-events-none absolute inset-3 rounded-3xl border border-white/8" />
 
         <Corner className="left-3 top-3" />
         <Corner className="right-3 top-3 rotate-90" />
@@ -44,9 +44,11 @@ export function ScanFrame({
         <Corner className="left-3 bottom-3 -rotate-90" />
       </div>
 
-      <p className="min-h-4 text-center text-xs text-white/60">
-        {guidanceMessage}
-      </p>
+      {cameraState === "ready" && (
+        <p className="min-h-4 text-center text-xs text-white/60">
+          {guidanceMessage}
+        </p>
+      )}
     </div>
   );
 }
