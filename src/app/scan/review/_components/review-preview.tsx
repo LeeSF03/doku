@@ -82,8 +82,8 @@ export function ReviewPreview({ page }: { page: ScanDraftPage | null }) {
               unoptimized
               className={cn(
                 "h-full w-full object-contain transition-transform",
-                `rotate-[${page.rotation}]`,
               )}
+              style={{ transform: `rotate(${page.rotation}deg)` }}
             />
           ) : (
             <FileText className="size-16 text-muted-foreground/40" />

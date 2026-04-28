@@ -45,7 +45,7 @@ export function ReviewToolbar({
           disabled={!currentPage}
         >
           <RotateCw className="size-4" />
-          Rotate
+          Rotate 90°
         </Button>
         <Separator orientation="vertical" className="h-5!" />
         <Button variant="ghost" size="sm">
