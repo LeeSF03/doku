@@ -9,6 +9,7 @@ MAX_DETECTION_SIZE = 1000
 MIN_AREA_RATIO = 0.05
 MAX_AREA_RATIO = 0.95
 MIN_SIDE_LENGTH_RATIO = 0.12
+APPROXIMATION_FACTORS = (0.015, 0.02, 0.03, 0.04, 0.06, 0.08)
 
 
 def main() -> int:
@@ -59,14 +60,9 @@ def detect_document_corners(image: np.ndarray):
     )
 
     for contour in contours:
-        perimeter = cv2.arcLength(contour, True)
+        approx = approximate_document_contour(contour)
 
-        if perimeter == 0:
-            continue
-
-        approx = cv2.approxPolyDP(contour, perimeter * 0.02, True)
-
-        if len(approx) != 4 or not cv2.isContourConvex(approx):
+        if approx is None:
             continue
 
         points = approx.reshape(4, 2).astype(np.float32)
@@ -100,6 +96,24 @@ def build_edge_mask(image: np.ndarray) -> np.ndarray:
     kernel = np.ones((5, 5), np.uint8)
     edged = cv2.dilate(edged, kernel, iterations=1)
     return cv2.morphologyEx(edged, cv2.MORPH_CLOSE, kernel)
+
+
+def approximate_document_contour(contour: np.ndarray):
+    contours_to_try = (contour, cv2.convexHull(contour))
+
+    for candidate_contour in contours_to_try:
+        perimeter = cv2.arcLength(candidate_contour, True)
+
+        if perimeter == 0:
+            continue
+
+        for factor in APPROXIMATION_FACTORS:
+            approx = cv2.approxPolyDP(candidate_contour, perimeter * factor, True)
+
+            if len(approx) == 4 and cv2.isContourConvex(approx):
+                return approx
+
+    return None
 
 
 def is_valid_document_candidate(
