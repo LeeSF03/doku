@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { sanitizeFileName } from "@/lib/file";
 import { useScanDraftStore } from "../../_providers/scan-provider";
 import { createDraftPdf, downloadPdf } from "../_lib/create-draft-pdf";
 
@@ -21,7 +22,10 @@ export function ReviewSaveBar() {
       const documentName = name.trim() || "Untitled document";
       const pdfBlob = await createDraftPdf(pages);
 
-      downloadPdf(pdfBlob, `${getSafeFileName(documentName)}.pdf`);
+      downloadPdf(
+        pdfBlob,
+        `${sanitizeFileName(documentName, "Untitled document")}.pdf`,
+      );
       toast.success("Document saved", {
         description: documentName,
       });
@@ -58,12 +62,4 @@ export function ReviewSaveBar() {
       </div>
     </div>
   );
-}
-
-function getSafeFileName(name: string) {
-  return name
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120) || "Untitled document";
 }
