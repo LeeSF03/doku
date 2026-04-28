@@ -95,6 +95,8 @@ export function useCameraPreview() {
           audio: false,
           video: {
             facingMode: { ideal: "environment" },
+            height: { ideal: 1920 },
+            width: { ideal: 2560 },
           },
         });
 

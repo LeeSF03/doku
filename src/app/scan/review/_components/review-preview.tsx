@@ -30,6 +30,7 @@ export function ReviewPreview({ page }: { page: ScanDraftPage | null }) {
       : { imageUrl: null, corners: null };
 
   const imageUrl = previewImageUrl ?? page?.imageUrl;
+  const rotatedSideways = page?.rotation === 90 || page?.rotation === 270;
 
   const handleCreateCorrectionPreview = async () => {
     if (!page) return;
@@ -75,16 +76,25 @@ export function ReviewPreview({ page }: { page: ScanDraftPage | null }) {
           }
         >
           {imageUrl && page ? (
-            <Image
-              src={imageUrl}
-              alt={previewImageUrl ? "Processed scan preview" : "Captured scan"}
-              fill
-              unoptimized
-              className={cn(
-                "h-full w-full object-contain transition-transform",
-              )}
-              style={{ transform: `rotate(${page.rotation}deg)` }}
-            />
+            <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+              <div
+                className={cn(
+                  "relative transition-transform",
+                  rotatedSideways ? "h-3/4 w-[133.333333%]" : "h-full w-full",
+                )}
+                style={{ transform: `rotate(${page.rotation}deg)` }}
+              >
+                <Image
+                  src={imageUrl}
+                  alt={
+                    previewImageUrl ? "Processed scan preview" : "Captured scan"
+                  }
+                  fill
+                  unoptimized
+                  className="object-contain"
+                />
+              </div>
+            </div>
           ) : (
             <FileText className="size-16 text-muted-foreground/40" />
           )}

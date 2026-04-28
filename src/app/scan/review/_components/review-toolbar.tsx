@@ -48,7 +48,12 @@ export function ReviewToolbar({
           Rotate 90°
         </Button>
         <Separator orientation="vertical" className="h-5!" />
-        <Button variant="ghost" size="sm">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled
+          className="disabled:opacity-50"
+        >
           <Crop className="size-4" />
           Crop
         </Button>
