@@ -1,68 +1,68 @@
-import { canvasToBlob } from "@/lib/canvas";
+import { canvasToBlob } from "@/lib/canvas"
 
 export type DocumentPoint = {
-  x: number;
-  y: number;
-};
+  x: number
+  y: number
+}
 
 export type DocumentCorners = [
   DocumentPoint,
   DocumentPoint,
   DocumentPoint,
   DocumentPoint,
-];
+]
 
 export type DocumentCorrectionPreview = {
-  blob: Blob;
-  corners: DocumentCorners;
-};
+  blob: Blob
+  corners: DocumentCorners
+}
 
 export async function transformDocumentImage(
   imageUrl: string,
-  corners: DocumentCorners,
+  corners: DocumentCorners
 ) {
-  const imageResponse = await fetch(imageUrl);
+  const imageResponse = await fetch(imageUrl)
 
   if (!imageResponse.ok) {
-    throw new Error("Could not load document image for transform.");
+    throw new Error("Could not load document image for transform.")
   }
 
-  const imageBlob = await imageResponse.blob();
-  const formData = new FormData();
+  const imageBlob = await imageResponse.blob()
+  const formData = new FormData()
 
-  formData.set("image", imageBlob, "scan.jpg");
-  formData.set("corners", JSON.stringify(corners));
+  formData.set("image", imageBlob, "scan.jpg")
+  formData.set("corners", JSON.stringify(corners))
 
   const transformResponse = await fetch("/api/document-transform", {
     method: "POST",
     body: formData,
-  });
+  })
 
   if (!transformResponse.ok) {
-    throw new Error("Document transform request failed.");
+    throw new Error("Document transform request failed.")
   }
 
-  return transformResponse.blob();
+  return transformResponse.blob()
 }
 
 export async function createDocumentCorrectionPreview(imageUrl: string) {
-  const image = await loadImage(imageUrl);
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
+  const image = await loadImage(imageUrl)
+  const canvas = document.createElement("canvas")
+  const context = canvas.getContext("2d")
 
   if (!context) {
-    throw new Error("Could not create image processing context.");
+    throw new Error("Could not create image processing context.")
   }
 
-  const targetWidth = image.naturalWidth;
-  const targetHeight = Math.round(targetWidth * 1.414);
-  const source = getCenteredDocumentCrop(image, targetWidth / targetHeight);
+  const targetWidth = image.naturalWidth
+  const targetHeight = Math.round(targetWidth * 1.414)
+  const source = getCenteredDocumentCrop(image, targetWidth / targetHeight)
 
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
+  canvas.width = targetWidth
+  canvas.height = targetHeight
 
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#ffffff"
+  context.fillRect(0, 0, canvas.width, canvas.height)
   context.drawImage(
     image,
     source.x,
@@ -72,10 +72,10 @@ export async function createDocumentCorrectionPreview(imageUrl: string) {
     0,
     0,
     canvas.width,
-    canvas.height,
-  );
+    canvas.height
+  )
 
-  const detectedCorners = await detectDocumentCorners(imageUrl);
+  const detectedCorners = await detectDocumentCorners(imageUrl)
 
   return {
     blob: await canvasToBlob(canvas, {
@@ -85,55 +85,52 @@ export async function createDocumentCorrectionPreview(imageUrl: string) {
     corners: detectedCorners
       ? mapImageCornersToCropCorners(detectedCorners, source, image)
       : getInsetPreviewCorners(),
-  } satisfies DocumentCorrectionPreview;
+  } satisfies DocumentCorrectionPreview
 }
 
 async function detectDocumentCorners(imageUrl: string) {
   try {
-    const imageResponse = await fetch(imageUrl);
+    const imageResponse = await fetch(imageUrl)
 
     if (!imageResponse.ok) {
-      throw new Error("Could not load captured image for detection.");
+      throw new Error("Could not load captured image for detection.")
     }
 
-    const imageBlob = await imageResponse.blob();
-    const formData = new FormData();
+    const imageBlob = await imageResponse.blob()
+    const formData = new FormData()
 
-    formData.set("image", imageBlob, "scan.jpg");
+    formData.set("image", imageBlob, "scan.jpg")
 
     const detectionResponse = await fetch("/api/document-detection", {
       method: "POST",
       body: formData,
-    });
+    })
 
     if (!detectionResponse.ok) {
-      throw new Error("Document detection request failed.");
+      throw new Error("Document detection request failed.")
     }
 
     const result = (await detectionResponse.json()) as {
-      corners: DocumentCorners | null;
-    };
+      corners: DocumentCorners | null
+    }
 
-    return result.corners;
+    return result.corners
   } catch (error) {
-    console.warn(
-      "[document-detection] Falling back to default corners.",
-      error,
-    );
-    return null;
+    console.warn("[document-detection] Falling back to default corners.", error)
+    return null
   }
 }
 
 function getCenteredDocumentCrop(
   image: HTMLImageElement,
-  targetAspectRatio: number,
+  targetAspectRatio: number
 ) {
-  let width = image.naturalWidth;
-  let height = Math.round(width / targetAspectRatio);
+  let width = image.naturalWidth
+  let height = Math.round(width / targetAspectRatio)
 
   if (height > image.naturalHeight) {
-    height = image.naturalHeight;
-    width = Math.round(height * targetAspectRatio);
+    height = image.naturalHeight
+    width = Math.round(height * targetAspectRatio)
   }
 
   return {
@@ -141,23 +138,23 @@ function getCenteredDocumentCrop(
     y: Math.round((image.naturalHeight - height) / 2),
     width,
     height,
-  };
+  }
 }
 
 function mapImageCornersToCropCorners(
   corners: DocumentCorners,
   source: ReturnType<typeof getCenteredDocumentCrop>,
-  image: HTMLImageElement,
+  image: HTMLImageElement
 ): DocumentCorners {
   return corners.map((corner) => {
-    const x = (corner.x * image.naturalWidth - source.x) / source.width;
-    const y = (corner.y * image.naturalHeight - source.y) / source.height;
+    const x = (corner.x * image.naturalWidth - source.x) / source.width
+    const y = (corner.y * image.naturalHeight - source.y) / source.height
 
     return {
       x: Math.min(1, Math.max(0, x)),
       y: Math.min(1, Math.max(0, y)),
-    };
-  }) as DocumentCorners;
+    }
+  }) as DocumentCorners
 }
 
 function getInsetPreviewCorners(): DocumentCorners {
@@ -166,15 +163,15 @@ function getInsetPreviewCorners(): DocumentCorners {
     { x: 0.97, y: 0.03 },
     { x: 0.97, y: 0.97 },
     { x: 0.03, y: 0.97 },
-  ];
+  ]
 }
 
 function loadImage(imageUrl: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
+    const image = new Image()
 
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Could not load captured image."));
-    image.src = imageUrl;
-  });
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error("Could not load captured image."))
+    image.src = imageUrl
+  })
 }

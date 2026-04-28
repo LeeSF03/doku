@@ -1,11 +1,12 @@
-import { type RefObject } from "react";
-import { type CameraPreviewState } from "../_hooks/use-camera-preview";
-import { ScanFrame } from "./scan-frame";
+import { type RefObject } from "react"
+
+import { type CameraPreviewState } from "../_hooks/use-camera-preview"
+import { ScanFrame } from "./scan-frame"
 
 type CameraPreviewProps = {
-  previewState: CameraPreviewState;
-  videoRef: RefObject<HTMLVideoElement | null>;
-};
+  previewState: CameraPreviewState
+  videoRef: RefObject<HTMLVideoElement | null>
+}
 
 export function CameraPreview({ previewState, videoRef }: CameraPreviewProps) {
   return (
@@ -24,5 +25,5 @@ export function CameraPreview({ previewState, videoRef }: CameraPreviewProps) {
         </ScanFrame>
       </div>
     </div>
-  );
+  )
 }

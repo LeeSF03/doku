@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useCameraPreview } from "../_hooks/use-camera-preview";
-import { CameraPreview } from "./camera-preview";
-import { ScanFooter } from "./scan-footer";
-import { ScanHeader } from "./scan-header";
+import { useCameraPreview } from "../_hooks/use-camera-preview"
+import { CameraPreview } from "./camera-preview"
+import { ScanFooter } from "./scan-footer"
+import { ScanHeader } from "./scan-header"
 
 export function ScanScreen() {
   const {
@@ -13,7 +13,7 @@ export function ScanScreen() {
     previewState,
     toggleFlash,
     videoRef,
-  } = useCameraPreview();
+  } = useCameraPreview()
 
   return (
     <div className="dark fixed inset-0 flex flex-col bg-black text-white">
@@ -24,14 +24,11 @@ export function ScanScreen() {
         toggleFlash={toggleFlash}
       />
 
-      <CameraPreview
-        previewState={previewState}
-        videoRef={videoRef}
-      />
+      <CameraPreview previewState={previewState} videoRef={videoRef} />
 
-      <div className="px-4 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-3">
+      <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),1.25rem)]">
         <ScanFooter captureFrame={captureFrame} previewState={previewState} />
       </div>
     </div>
-  );
+  )
 }

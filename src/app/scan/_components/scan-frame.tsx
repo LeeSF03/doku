@@ -1,11 +1,13 @@
-import { type ReactNode } from "react";
-import { type CameraPreviewState } from "../_hooks/use-camera-preview";
-import { cn } from "@/lib/utils";
+import { type ReactNode } from "react"
+
+import { cn } from "@/lib/utils"
+
+import { type CameraPreviewState } from "../_hooks/use-camera-preview"
 
 type ScanFrameProps = {
-  previewState: CameraPreviewState;
-  children: ReactNode;
-};
+  previewState: CameraPreviewState
+  children: ReactNode
+}
 
 const messageByState = {
   loading: "Starting camera…",
@@ -13,13 +15,10 @@ const messageByState = {
   ready: "Tap shutter to capture",
   unavailable: "Camera unavailable. Try again in a moment.",
   unsupported: "Camera preview is not supported in this browser.",
-} satisfies Record<CameraPreviewState, string>;
+} satisfies Record<CameraPreviewState, string>
 
-export function ScanFrame({
-  previewState,
-  children,
-}: ScanFrameProps) {
-  const guidanceMessage = messageByState[previewState];
+export function ScanFrame({ previewState, children }: ScanFrameProps) {
+  const guidanceMessage = messageByState[previewState]
 
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-3">
@@ -46,10 +45,10 @@ export function ScanFrame({
 
         <div className="pointer-events-none absolute inset-3 rounded-3xl border border-white/8" />
 
-        <Corner className="left-3 top-3" />
-        <Corner className="right-3 top-3 rotate-90" />
+        <Corner className="top-3 left-3" />
+        <Corner className="top-3 right-3 rotate-90" />
         <Corner className="right-3 bottom-3 rotate-180" />
-        <Corner className="left-3 bottom-3 -rotate-90" />
+        <Corner className="bottom-3 left-3 -rotate-90" />
       </div>
 
       {previewState === "ready" && (
@@ -58,7 +57,7 @@ export function ScanFrame({
         </p>
       )}
     </div>
-  );
+  )
 }
 
 function Corner({ className }: { className?: string }) {
@@ -66,9 +65,9 @@ function Corner({ className }: { className?: string }) {
     <span
       aria-hidden
       className={cn(
-        "absolute h-8 w-8 rounded-tl-2xl border-l-2 border-t-2 border-white/75",
-        className,
+        "absolute h-8 w-8 rounded-tl-2xl border-t-2 border-l-2 border-white/75",
+        className
       )}
     />
-  );
+  )
 }

@@ -38,9 +38,18 @@
 }
 
 @keyframes doku-scan {
-  0% { top: 0; opacity: 0.9; }
-  50% { top: calc(100% - 4px); opacity: 0.9; }
-  100% { top: 0; opacity: 0.9; }
+  0% {
+    top: 0;
+    opacity: 0.9;
+  }
+  50% {
+    top: calc(100% - 4px);
+    opacity: 0.9;
+  }
+  100% {
+    top: 0;
+    opacity: 0.9;
+  }
 }
 
 :root {

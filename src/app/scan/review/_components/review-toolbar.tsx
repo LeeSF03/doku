@@ -1,39 +1,41 @@
-import { Crop, RotateCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Crop, RotateCw } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+
 import {
-  type ScanFilterId,
   type ScanDraftPage,
+  type ScanFilterId,
   useScanDraftActions,
-} from "../../_providers/scan-provider";
+} from "../../_providers/scan-provider"
 
 const filters = [
   { id: "original", label: "Original" },
   { id: "bw", label: "B&W" },
   { id: "grayscale", label: "Grayscale" },
   { id: "color", label: "Color" },
-] as const;
+] as const
 
 export function ReviewToolbar({
   currentPage,
 }: {
-  currentPage: ScanDraftPage | null;
+  currentPage: ScanDraftPage | null
 }) {
-  const { rotatePage, setPageFilter } = useScanDraftActions();
-  const activeFilter = currentPage?.filter ?? "original";
+  const { rotatePage, setPageFilter } = useScanDraftActions()
+  const activeFilter = currentPage?.filter ?? "original"
 
   const handleFilterChange = (filter: ScanFilterId) => {
-    if (!currentPage) return;
+    if (!currentPage) return
 
-    setPageFilter(currentPage.id, filter);
-  };
+    setPageFilter(currentPage.id, filter)
+  }
 
   return (
     <div className="mt-5 flex flex-1 items-center justify-between gap-3">
@@ -76,5 +78,5 @@ export function ReviewToolbar({
         </SelectContent>
       </Select>
     </div>
-  );
+  )
 }

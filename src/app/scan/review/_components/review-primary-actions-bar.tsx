@@ -1,12 +1,15 @@
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Check, Plus, RotateCcw, WandSparkles, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { type ScanDraftPage } from "../../_providers/scan-provider";
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+
+import { Check, Plus, RotateCcw, WandSparkles, X } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+
+import { type ScanDraftPage } from "../../_providers/scan-provider"
 import {
   type CorrectionPreview,
   type PreviewCorrectionStatus,
-} from "../_hooks/use-correction-preview";
+} from "../_hooks/use-correction-preview"
 
 export function ReviewPrimaryActionBar({
   createCorrectionPreview,
@@ -16,22 +19,22 @@ export function ReviewPrimaryActionBar({
   clearCorrectionPreview,
   status,
 }: {
-  createCorrectionPreview: () => Promise<void>;
-  createCorrectedImage: () => Promise<void>;
-  currentPage: ScanDraftPage | null;
-  preview: CorrectionPreview | null;
-  clearCorrectionPreview: () => void;
-  status: PreviewCorrectionStatus;
+  createCorrectionPreview: () => Promise<void>
+  createCorrectedImage: () => Promise<void>
+  currentPage: ScanDraftPage | null
+  preview: CorrectionPreview | null
+  clearCorrectionPreview: () => void
+  status: PreviewCorrectionStatus
 }) {
-  const router = useRouter();
-  const detecting = status === "detecting";
-  const transforming = status === "transforming";
+  const router = useRouter()
+  const detecting = status === "detecting"
+  const transforming = status === "transforming"
 
   const handleRetake = () => {
-    if (!currentPage) return;
+    if (!currentPage) return
 
-    router.push(`/scan?replace-page-id=${encodeURIComponent(currentPage.id)}`);
-  };
+    router.push(`/scan?replace-page-id=${encodeURIComponent(currentPage.id)}`)
+  }
 
   return (
     <div className="mt-4 space-y-2">
@@ -99,5 +102,5 @@ export function ReviewPrimaryActionBar({
         )}
       </div>
     </div>
-  );
+  )
 }

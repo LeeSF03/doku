@@ -1,56 +1,60 @@
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Images } from "lucide-react";
-import { useQueryState } from "nuqs";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { type CameraPreviewState } from "../_hooks/use-camera-preview";
+import { useState } from "react"
+
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+
+import { Images } from "lucide-react"
+import { useQueryState } from "nuqs"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+
+import { type CameraPreviewState } from "../_hooks/use-camera-preview"
 import {
   type ScanDraftPage,
   useScanDraftActions,
   useScanDraftStore,
-} from "../_providers/scan-provider";
+} from "../_providers/scan-provider"
 
 type ScanFooterProps = {
-  captureFrame: () => Promise<Blob>;
-  previewState: CameraPreviewState;
-};
+  captureFrame: () => Promise<Blob>
+  previewState: CameraPreviewState
+}
 
 export function ScanFooter({ captureFrame, previewState }: ScanFooterProps) {
-  const router = useRouter();
-  const [replacePageId] = useQueryState("replace-page-id");
-  const [capturePending, setCapturePending] = useState(false);
-  const pages = useScanDraftStore((state) => state.pages);
-  const pageCount = pages.length;
-  const { upsertPage } = useScanDraftActions();
+  const router = useRouter()
+  const [replacePageId] = useQueryState("replace-page-id")
+  const [capturePending, setCapturePending] = useState(false)
+  const pages = useScanDraftStore((state) => state.pages)
+  const pageCount = pages.length
+  const { upsertPage } = useScanDraftActions()
 
   const handleCapture = async () => {
-    setCapturePending(true);
+    setCapturePending(true)
 
     try {
-      const blob = await captureFrame();
-      const imageUrl = URL.createObjectURL(blob);
+      const blob = await captureFrame()
+      const imageUrl = URL.createObjectURL(blob)
       const page: ScanDraftPage = {
         id: replacePageId ?? crypto.randomUUID(),
         imageUrl,
         rotation: 0,
         filter: "original" as const,
-      };
+      }
 
-      upsertPage(page);
-      router.push(`/scan/review?draft-page-id=${encodeURIComponent(page.id)}`);
+      upsertPage(page)
+      router.push(`/scan/review?draft-page-id=${encodeURIComponent(page.id)}`)
     } catch (error) {
       toast.error("Could not capture page", {
         description:
           error instanceof Error ? error.message : "Try again in a moment.",
-      });
+      })
     } finally {
-      setCapturePending(false);
+      setCapturePending(false)
     }
-  };
+  }
 
-  const canOpenReview = pageCount > 0;
+  const canOpenReview = pageCount > 0
 
   return (
     <div className="grid grid-cols-3 items-center">
@@ -74,7 +78,7 @@ export function ScanFooter({ captureFrame, previewState }: ScanFooterProps) {
             size="icon-lg"
             disabled
             aria-label="Open review"
-            className="rounded-xl text-muted-foreground/50 disabled:opacity-100"
+            className="text-muted-foreground/50 rounded-xl disabled:opacity-100"
           >
             <Images className="size-6" />
           </Button>
@@ -87,7 +91,7 @@ export function ScanFooter({ captureFrame, previewState }: ScanFooterProps) {
           onClick={handleCapture}
           disabled={previewState !== "ready" || capturePending}
           aria-label="Capture"
-          className="group relative grid size-20 place-items-center rounded-full outline-none transition-opacity focus-visible:ring-4 focus-visible:ring-white/30 disabled:pointer-events-none disabled:opacity-50"
+          className="group relative grid size-20 place-items-center rounded-full transition-opacity outline-none focus-visible:ring-4 focus-visible:ring-white/30 disabled:pointer-events-none disabled:opacity-50"
         >
           <span className="absolute inset-0 rounded-full border-4 border-white" />
           <span className="size-15 rounded-full bg-white transition-transform group-active:scale-90" />
@@ -100,5 +104,5 @@ export function ScanFooter({ captureFrame, previewState }: ScanFooterProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

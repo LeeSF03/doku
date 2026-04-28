@@ -1,19 +1,22 @@
-"use client";
+"use client"
 
-import { type Route } from "next";
-import { useRouter } from "next/navigation";
-import { RotateCcw, X, Zap, ZapOff } from "lucide-react";
-import { useQueryState } from "nuqs";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { type CameraPreviewState } from "../_hooks/use-camera-preview";
+import { type Route } from "next"
+import { useRouter } from "next/navigation"
+
+import { RotateCcw, X, Zap, ZapOff } from "lucide-react"
+import { useQueryState } from "nuqs"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+
+import { type CameraPreviewState } from "../_hooks/use-camera-preview"
 
 type ScanHeaderProps = {
-  flashEnabled: boolean;
-  flashSupported: boolean;
-  previewState: CameraPreviewState;
-  toggleFlash: () => Promise<void>;
-};
+  flashEnabled: boolean
+  flashSupported: boolean
+  previewState: CameraPreviewState
+  toggleFlash: () => Promise<void>
+}
 
 export function ScanHeader({
   flashEnabled,
@@ -21,33 +24,33 @@ export function ScanHeader({
   previewState,
   toggleFlash,
 }: ScanHeaderProps) {
-  const router = useRouter();
-  const [replacePageId] = useQueryState("replace-page-id");
-  const flashDisabled = previewState !== "ready" || !flashSupported;
+  const router = useRouter()
+  const [replacePageId] = useQueryState("replace-page-id")
+  const flashDisabled = previewState !== "ready" || !flashSupported
 
   const reviewHref = replacePageId
     ? (`/scan/review?draft-page-id=${encodeURIComponent(replacePageId)}` as Route)
-    : null;
+    : null
 
   const handleCloseScanner = () => {
     if (reviewHref) {
-      router.replace(reviewHref);
-      return;
+      router.replace(reviewHref)
+      return
     }
 
-    router.push("/");
-  };
+    router.push("/")
+  }
 
   const handleToggleFlash = async () => {
     try {
-      await toggleFlash();
+      await toggleFlash()
     } catch (error) {
       toast.error("Could not toggle flash", {
         description:
           error instanceof Error ? error.message : "Try again in a moment.",
-      });
+      })
     }
-  };
+  }
 
   return (
     <div className="flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-3">
@@ -74,7 +77,7 @@ export function ScanHeader({
         onClick={handleToggleFlash}
         disabled={flashDisabled}
         aria-label={flashEnabled ? "Disable flash" : "Enable flash"}
-        className="rounded-full text-white hover:bg-white/10 hover:text-white disabled:text-muted-foreground/50 disabled:opacity-100"
+        className="disabled:text-muted-foreground/50 rounded-full text-white hover:bg-white/10 hover:text-white disabled:opacity-100"
       >
         {flashEnabled ? (
           <Zap className="fill-yellow-300 text-yellow-300" />
@@ -83,5 +86,5 @@ export function ScanHeader({
         )}
       </Button>
     </div>
-  );
+  )
 }

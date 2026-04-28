@@ -1,117 +1,116 @@
-"use client";
+"use client"
 
-import { useLayoutEffect, useRef, type PointerEvent } from "react";
-import { cn } from "@/lib/utils";
+import { type PointerEvent, useLayoutEffect, useRef } from "react"
+
+import { cn } from "@/lib/utils"
+
 import {
   type DocumentCorners,
   type DocumentPoint,
-} from "../_lib/process-document-image";
+} from "../_lib/process-document-image"
 
 type ReviewDocumentEdgeOverlayProps = {
-  corners: DocumentCorners;
-  onCornerChange: (
-    cornerIndex: number,
-    point: { x: number; y: number },
-  ) => void;
-};
+  corners: DocumentCorners
+  onCornerChange: (cornerIndex: number, point: { x: number; y: number }) => void
+}
 
 export function ReviewDocumentEdgeOverlay({
   corners,
   onCornerChange,
 }: ReviewDocumentEdgeOverlayProps) {
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const polygonRef = useRef<SVGPolygonElement | null>(null);
-  const handleRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const activeCornerIndexRef = useRef<number | null>(null);
-  const activePointerIdRef = useRef<number | null>(null);
-  const draftCornersRef = useRef<DocumentCorners>(corners);
-  const points = getPolygonPoints(corners);
+  const overlayRef = useRef<HTMLDivElement | null>(null)
+  const polygonRef = useRef<SVGPolygonElement | null>(null)
+  const handleRefs = useRef<Array<HTMLDivElement | null>>([])
+  const activeCornerIndexRef = useRef<number | null>(null)
+  const activePointerIdRef = useRef<number | null>(null)
+  const draftCornersRef = useRef<DocumentCorners>(corners)
+  const points = getPolygonPoints(corners)
 
   function updateHandlePosition(cornerIndex: number, point: DocumentPoint) {
-    const overlay = overlayRef.current;
-    const handle = handleRefs.current[cornerIndex];
+    const overlay = overlayRef.current
+    const handle = handleRefs.current[cornerIndex]
 
-    if (!overlay || !handle) return;
+    if (!overlay || !handle) return
 
-    const rect = overlay.getBoundingClientRect();
+    const rect = overlay.getBoundingClientRect()
 
-    handle.style.transform = `translate(${point.x * rect.width}px, ${point.y * rect.height}px) translate(-50%, -50%)`;
+    handle.style.transform = `translate(${point.x * rect.width}px, ${point.y * rect.height}px) translate(-50%, -50%)`
   }
 
   useLayoutEffect(() => {
-    corners.forEach((corner, index) => updateHandlePosition(index, corner));
-  }, [corners]);
+    corners.forEach((corner, index) => updateHandlePosition(index, corner))
+  }, [corners])
 
   function handlePointerDown(
     event: PointerEvent<HTMLDivElement>,
-    cornerIndex: number,
+    cornerIndex: number
   ) {
-    draftCornersRef.current = [...corners] as DocumentCorners;
-    activeCornerIndexRef.current = cornerIndex;
-    activePointerIdRef.current = event.pointerId;
-    overlayRef.current?.setPointerCapture(event.pointerId);
-    updateCornerFromPointer(event, cornerIndex, false);
+    draftCornersRef.current = [...corners] as DocumentCorners
+    activeCornerIndexRef.current = cornerIndex
+    activePointerIdRef.current = event.pointerId
+    overlayRef.current?.setPointerCapture(event.pointerId)
+    updateCornerFromPointer(event, cornerIndex, false)
   }
 
   function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
-    if (activePointerIdRef.current !== event.pointerId) return;
+    if (activePointerIdRef.current !== event.pointerId) return
 
-    if (activeCornerIndexRef.current === null) return;
-    updateCornerFromPointer(event, activeCornerIndexRef.current, false);
+    if (activeCornerIndexRef.current === null) return
+    updateCornerFromPointer(event, activeCornerIndexRef.current, false)
   }
 
   function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
-    if (activePointerIdRef.current !== event.pointerId) return;
+    if (activePointerIdRef.current !== event.pointerId) return
 
-    if (activeCornerIndexRef.current === null) return;
-    updateCornerFromPointer(event, activeCornerIndexRef.current, true);
+    if (activeCornerIndexRef.current === null) return
+    updateCornerFromPointer(event, activeCornerIndexRef.current, true)
 
     if (overlayRef.current?.hasPointerCapture(event.pointerId)) {
-      overlayRef.current.releasePointerCapture(event.pointerId);
+      overlayRef.current.releasePointerCapture(event.pointerId)
     }
 
-    activeCornerIndexRef.current = null;
-    activePointerIdRef.current = null;
+    activeCornerIndexRef.current = null
+    activePointerIdRef.current = null
   }
 
   function updateCornerFromPointer(
     event: PointerEvent<HTMLDivElement>,
     cornerIndex: number,
-    commit: boolean,
+    commit: boolean
   ) {
-    const point = getOverlayPointFromPointer(event);
+    const point = getOverlayPointFromPointer(event)
 
-    if (!point) return;
+    if (!point) return
 
-    draftCornersRef.current[cornerIndex] = point;
-    updateHandlePosition(cornerIndex, point);
-    updatePolygonPoints(draftCornersRef.current);
+    draftCornersRef.current[cornerIndex] = point
+    updateHandlePosition(cornerIndex, point)
+    updatePolygonPoints(draftCornersRef.current)
 
-    if (commit) onCornerChange(cornerIndex, point);
+    if (commit) onCornerChange(cornerIndex, point)
   }
 
   function getOverlayPointFromPointer(event: PointerEvent<HTMLDivElement>) {
-    const overlay = overlayRef.current;
+    const overlay = overlayRef.current
 
-    if (!overlay) return null;
+    if (!overlay) return null
 
-    const rect = overlay.getBoundingClientRect();
+    const rect = overlay.getBoundingClientRect()
     return {
       x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
       y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)),
-    };
+    }
   }
 
   function setHandleRef(cornerIndex: number, handle: HTMLDivElement | null) {
-    handleRefs.current[cornerIndex] = handle;
+    handleRefs.current[cornerIndex] = handle
   }
 
   function updatePolygonPoints(corners: DocumentCorners) {
-    polygonRef.current?.setAttribute("points", getPolygonPoints(corners));
+    polygonRef.current?.setAttribute("points", getPolygonPoints(corners))
   }
 
   function getPolygonPoints(corners: DocumentCorners) {
-    return corners.map((corner) => `${corner.x},${corner.y}`).join(" ");
+    return corners.map((corner) => `${corner.x},${corner.y}`).join(" ")
   }
 
   return (
@@ -145,13 +144,13 @@ export function ReviewDocumentEdgeOverlay({
           key={`${corner.x}-${corner.y}-${index}`}
           ref={(handle) => setHandleRef(index, handle)}
           className={cn(
-            "absolute left-0 top-0 size-4 cursor-grab rounded-full border-2 border-background bg-sky-300 shadow-sm active:cursor-grabbing",
+            "border-background absolute top-0 left-0 size-4 cursor-grab rounded-full border-2 bg-sky-300 shadow-sm active:cursor-grabbing"
           )}
           onPointerDown={(event) => {
-            handlePointerDown(event, index);
+            handlePointerDown(event, index)
           }}
         />
       ))}
     </div>
-  );
+  )
 }
