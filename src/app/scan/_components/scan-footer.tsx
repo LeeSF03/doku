@@ -5,7 +5,7 @@ import { Images } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { type CameraState } from "../_hooks/use-camera-preview";
+import { type CameraPreviewState } from "../_hooks/use-camera-preview";
 import {
   type ScanDraftPage,
   useScanDraftActions,
@@ -13,11 +13,11 @@ import {
 } from "../_providers/scan-provider";
 
 type ScanFooterProps = {
-  cameraState: CameraState;
   captureFrame: () => Promise<Blob>;
+  previewState: CameraPreviewState;
 };
 
-export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
+export function ScanFooter({ captureFrame, previewState }: ScanFooterProps) {
   const router = useRouter();
   const [replacePageId] = useQueryState("replace-page-id");
   const [capturePending, setCapturePending] = useState(false);
@@ -85,7 +85,7 @@ export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
         <button
           type="button"
           onClick={handleCapture}
-          disabled={cameraState !== "ready" || capturePending}
+          disabled={previewState !== "ready" || capturePending}
           aria-label="Capture"
           className="group relative grid size-20 place-items-center rounded-full outline-none transition-opacity focus-visible:ring-4 focus-visible:ring-white/30 disabled:pointer-events-none disabled:opacity-50"
         >

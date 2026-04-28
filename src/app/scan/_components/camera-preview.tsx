@@ -1,29 +1,19 @@
 import { type RefObject } from "react";
-import { type CameraState } from "../_hooks/use-camera-preview";
+import { type CameraPreviewState } from "../_hooks/use-camera-preview";
 import { ScanFrame } from "./scan-frame";
 
 type CameraPreviewProps = {
-  cameraErrorMessage: string | null;
-  cameraState: CameraState;
+  previewState: CameraPreviewState;
   videoRef: RefObject<HTMLVideoElement | null>;
 };
 
-export function CameraPreview({
-  cameraErrorMessage,
-  cameraState,
-  videoRef,
-}: CameraPreviewProps) {
-  const guidanceMessage = getGuidanceMessage({
-    cameraErrorMessage,
-    cameraState,
-  });
-
+export function CameraPreview({ previewState, videoRef }: CameraPreviewProps) {
   return (
     <div className="relative flex-1 overflow-hidden">
       <div className="absolute inset-0 bg-black" />
 
       <div className="absolute inset-x-6 inset-y-20 flex items-center justify-center">
-        <ScanFrame cameraState={cameraState} guidanceMessage={guidanceMessage}>
+        <ScanFrame previewState={previewState}>
           <video
             ref={videoRef}
             autoPlay
@@ -35,19 +25,4 @@ export function CameraPreview({
       </div>
     </div>
   );
-}
-
-function getGuidanceMessage({
-  cameraErrorMessage,
-  cameraState,
-}: {
-  cameraErrorMessage: string | null;
-  cameraState: CameraState;
-}) {
-  if (cameraState === "loading") return "Starting camera…";
-
-  if (cameraState === "error")
-    return cameraErrorMessage ?? "Allow camera access to scan documents.";
-
-  return "Tap shutter to capture";
 }

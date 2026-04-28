@@ -6,24 +6,24 @@ import { RotateCcw, X, Zap, ZapOff } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { type CameraState } from "../_hooks/use-camera-preview";
+import { type CameraPreviewState } from "../_hooks/use-camera-preview";
 
 type ScanHeaderProps = {
-  cameraState: CameraState;
   flashEnabled: boolean;
   flashSupported: boolean;
+  previewState: CameraPreviewState;
   toggleFlash: () => Promise<void>;
 };
 
 export function ScanHeader({
-  cameraState,
   flashEnabled,
   flashSupported,
+  previewState,
   toggleFlash,
 }: ScanHeaderProps) {
   const router = useRouter();
   const [replacePageId] = useQueryState("replace-page-id");
-  const flashDisabled = cameraState !== "ready" || !flashSupported;
+  const flashDisabled = previewState !== "ready" || !flashSupported;
 
   const reviewHref = replacePageId
     ? (`/scan/review?draft-page-id=${encodeURIComponent(replacePageId)}` as Route)

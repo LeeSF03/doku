@@ -3,34 +3,40 @@
 import { useEffect, useRef, useState } from "react";
 import { canvasToBlob } from "@/lib/canvas";
 
-export type CameraState = "loading" | "ready" | "error";
+export type CameraPreviewState =
+  | "loading"
+  | "permission-denied"
+  | "ready"
+  | "unavailable"
+  | "unsupported";
 
-type TorchMediaTrackCapabilities = MediaTrackCapabilities & {
+interface TorchMediaTrackCapabilities extends MediaTrackCapabilities {
   torch?: boolean;
-};
+}
 
-type TorchMediaTrackConstraints = MediaTrackConstraints & {
+interface TorchMediaTrackConstraints extends MediaTrackConstraints {
   advanced?: TorchMediaTrackConstraintSet[];
-};
+}
 
-type TorchMediaTrackConstraintSet = MediaTrackConstraintSet & {
+interface TorchMediaTrackConstraintSet extends MediaTrackConstraintSet {
   torch?: boolean;
-};
+}
+
+type FlashState = "off" | "on" | "unsupported";
 
 export function useCameraPreview() {
-  const [cameraState, setCameraState] = useState<CameraState>("loading");
-  const [cameraErrorMessage, setCameraErrorMessage] = useState<string | null>(
-    null,
-  );
-  const [flashEnabled, setFlashEnabled] = useState(false);
-  const [flashSupported, setFlashSupported] = useState(false);
+  const [previewState, setPreviewState] =
+    useState<CameraPreviewState>("loading");
+  const [flashState, setFlashState] = useState<FlashState>("unsupported");
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const flashEnabled = flashState === "on";
+  const flashSupported = flashState !== "unsupported";
 
   const captureFrame = async () => {
     const video = videoRef.current;
 
-    if (!video || cameraState !== "ready") {
+    if (!video || previewState !== "ready") {
       throw new Error("Camera is not ready.");
     }
 
@@ -62,11 +68,11 @@ export function useCameraPreview() {
   const toggleFlash = async () => {
     const track = streamRef.current?.getVideoTracks()[0] ?? null;
 
-    if (!track || !flashSupported) {
+    if (!track || flashState === "unsupported") {
       throw new Error("Flash is not supported on this camera.");
     }
 
-    const nextFlashEnabled = !flashEnabled;
+    const nextFlashEnabled = flashState !== "on";
 
     await track.applyConstraints({
       advanced: [
@@ -75,7 +81,7 @@ export function useCameraPreview() {
         },
       ],
     } as TorchMediaTrackConstraints);
-    setFlashEnabled(nextFlashEnabled);
+    setFlashState(nextFlashEnabled ? "on" : "off");
   };
 
   useEffect(() => {
@@ -83,10 +89,7 @@ export function useCameraPreview() {
 
     async function startCamera() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setCameraState("error");
-        setCameraErrorMessage(
-          "Camera preview is not supported in this browser.",
-        );
+        setPreviewState("unsupported");
         return;
       }
 
@@ -106,15 +109,14 @@ export function useCameraPreview() {
         }
 
         streamRef.current = stream;
-        setFlashEnabled(false);
-        setFlashSupported(() => {
+        setFlashState(() => {
           const track = streamRef.current?.getVideoTracks()[0] ?? null;
 
-          if (!track?.getCapabilities) return false;
+          if (!track?.getCapabilities) return "unsupported";
 
           const capabilities =
             track.getCapabilities() as TorchMediaTrackCapabilities;
-          return capabilities.torch === true;
+          return capabilities.torch === true ? "off" : "unsupported";
         });
 
         if (videoRef.current) {
@@ -122,11 +124,13 @@ export function useCameraPreview() {
           await videoRef.current.play().catch(() => undefined);
         }
 
-        setCameraState("ready");
-        setCameraErrorMessage(null);
-      } catch {
-        setCameraState("error");
-        setCameraErrorMessage("Allow camera access to scan documents.");
+        setPreviewState("ready");
+      } catch (error) {
+        setPreviewState(
+          error instanceof DOMException && error.name === "NotAllowedError"
+            ? "permission-denied"
+            : "unavailable",
+        );
       }
     }
 
@@ -134,8 +138,7 @@ export function useCameraPreview() {
 
     return () => {
       cancelled = true;
-      setFlashEnabled(false);
-      setFlashSupported(false);
+      setFlashState("unsupported");
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     };
@@ -143,10 +146,9 @@ export function useCameraPreview() {
 
   return {
     captureFrame,
-    cameraErrorMessage,
-    cameraState,
     flashEnabled,
     flashSupported,
+    previewState,
     toggleFlash,
     videoRef,
   };

@@ -8,10 +8,9 @@ import { ScanHeader } from "./scan-header";
 export function ScanScreen() {
   const {
     captureFrame,
-    cameraErrorMessage,
-    cameraState,
     flashEnabled,
     flashSupported,
+    previewState,
     toggleFlash,
     videoRef,
   } = useCameraPreview();
@@ -19,20 +18,19 @@ export function ScanScreen() {
   return (
     <div className="dark fixed inset-0 flex flex-col bg-black text-white">
       <ScanHeader
-        cameraState={cameraState}
         flashEnabled={flashEnabled}
         flashSupported={flashSupported}
+        previewState={previewState}
         toggleFlash={toggleFlash}
       />
 
       <CameraPreview
-        cameraErrorMessage={cameraErrorMessage}
-        cameraState={cameraState}
+        previewState={previewState}
         videoRef={videoRef}
       />
 
       <div className="px-4 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-3">
-        <ScanFooter cameraState={cameraState} captureFrame={captureFrame} />
+        <ScanFooter captureFrame={captureFrame} previewState={previewState} />
       </div>
     </div>
   );

@@ -1,18 +1,26 @@
 import { type ReactNode } from "react";
-import { type CameraState } from "../_hooks/use-camera-preview";
+import { type CameraPreviewState } from "../_hooks/use-camera-preview";
 import { cn } from "@/lib/utils";
 
 type ScanFrameProps = {
-  cameraState: CameraState;
-  guidanceMessage: string;
+  previewState: CameraPreviewState;
   children: ReactNode;
 };
 
+const messageByState = {
+  loading: "Starting camera…",
+  "permission-denied": "Allow camera access to scan documents.",
+  ready: "Tap shutter to capture",
+  unavailable: "Camera unavailable. Try again in a moment.",
+  unsupported: "Camera preview is not supported in this browser.",
+} satisfies Record<CameraPreviewState, string>;
+
 export function ScanFrame({
-  cameraState,
-  guidanceMessage,
+  previewState,
   children,
 }: ScanFrameProps) {
+  const guidanceMessage = messageByState[previewState];
+
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-3">
       <div className="relative aspect-3/4 w-full">
@@ -20,11 +28,11 @@ export function ScanFrame({
           {children}
           <div className="absolute inset-0 bg-linear-to-b from-black/30 via-transparent to-black/35" />
 
-          {cameraState !== "ready" && (
+          {previewState !== "ready" && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/55 px-6 text-center">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-white">
-                  {cameraState === "loading"
+                  {previewState === "loading"
                     ? "Opening camera"
                     : "Camera unavailable"}
                 </p>
@@ -44,7 +52,7 @@ export function ScanFrame({
         <Corner className="left-3 bottom-3 -rotate-90" />
       </div>
 
-      {cameraState === "ready" && (
+      {previewState === "ready" && (
         <p className="min-h-4 text-center text-xs text-white/60">
           {guidanceMessage}
         </p>
