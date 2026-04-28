@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { type CameraState } from "../_hooks/use-camera-preview";
 import {
+  type ScanDraftPage,
   useScanDraftActions,
   useScanDraftStore,
 } from "../_providers/scan-provider";
@@ -30,7 +31,7 @@ export function ScanFooter({ cameraState, captureFrame }: ScanFooterProps) {
     try {
       const blob = await captureFrame();
       const imageUrl = URL.createObjectURL(blob);
-      const page = {
+      const page: ScanDraftPage = {
         id: replacePageId ?? crypto.randomUUID(),
         imageUrl,
         rotation: 0,

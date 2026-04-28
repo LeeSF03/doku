@@ -3,13 +3,16 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { createStore } from "zustand/vanilla";
+import { minBy } from "es-toolkit";
 
 export type ScanFilterId = "original" | "bw" | "grayscale" | "color";
+export type ScanPageRotation = 0 | 90 | 180 | 270;
+const scanPageRotationOption = [0, 90, 180, 270] as const;
 
 export type ScanDraftPage = {
   id: string;
   imageUrl: string;
-  rotation: number;
+  rotation: ScanPageRotation;
   filter: ScanFilterId;
 };
 
@@ -98,7 +101,14 @@ function createScanDraftStore() {
           ),
         })),
       rotatePage: (pageId) =>
-        set((state) => updatePageById(state, pageId, rotatePage)),
+        set((state) =>
+          updatePageById(state, pageId, (page) => ({
+            ...page,
+            rotation: minBy(scanPageRotationOption, (n) =>
+              Math.abs(n - ((page.rotation + 90) % 360)),
+            ) as ScanPageRotation,
+          })),
+        ),
       setPageFilter: (pageId, filter) =>
         set((state) =>
           updatePageById(state, pageId, (page) => ({
@@ -109,13 +119,6 @@ function createScanDraftStore() {
       resetDraft: () => set(initialScanDraftState),
     },
   }));
-}
-
-function rotatePage(page: ScanDraftPage): ScanDraftPage {
-  return {
-    ...page,
-    rotation: (page.rotation + 90) % 360,
-  };
 }
 
 function updatePageById(

@@ -3,16 +3,37 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useScanDraftStore } from "../../_providers/scan-provider";
+import { createDraftPdf, downloadPdf } from "../_lib/create-draft-pdf";
 
 export function ReviewSaveBar() {
   const router = useRouter();
+  const pages = useScanDraftStore((state) => state.pages);
   const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    toast.success("Document saved", {
-      description: name || "Untitled document",
-    });
-    router.push("/");
+  const handleSave = async () => {
+    if (saving) return;
+
+    setSaving(true);
+
+    try {
+      const documentName = name.trim() || "Untitled document";
+      const pdfBlob = await createDraftPdf(pages);
+
+      downloadPdf(pdfBlob, `${getSafeFileName(documentName)}.pdf`);
+      toast.success("Document saved", {
+        description: documentName,
+      });
+      router.push("/");
+    } catch (error) {
+      toast.error("Could not save document", {
+        description:
+          error instanceof Error ? error.message : "Try again in a moment.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -28,12 +49,21 @@ export function ReviewSaveBar() {
 
         <Button
           onClick={handleSave}
+          disabled={pages.length === 0 || saving}
           size="lg"
           className="h-14 w-full rounded-full text-base"
         >
-          Save Document
+          {saving ? "Saving..." : "Save Document"}
         </Button>
       </div>
     </div>
   );
+}
+
+function getSafeFileName(name: string) {
+  return name
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120) || "Untitled document";
 }
