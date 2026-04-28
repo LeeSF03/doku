@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { canvasToBlob } from "@/lib/canvas";
 
 export type CameraState = "loading" | "ready" | "error";
 
@@ -52,15 +53,10 @@ export function useCameraPreview() {
 
     context.drawImage(video, 0, 0, width, height);
 
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.92);
+    return canvasToBlob(canvas, {
+      quality: 0.92,
+      type: "image/jpeg",
     });
-
-    if (!blob) {
-      throw new Error("Could not capture a camera frame.");
-    }
-
-    return blob;
   };
 
   const toggleFlash = async () => {

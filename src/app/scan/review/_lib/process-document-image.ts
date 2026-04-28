@@ -1,3 +1,5 @@
+import { canvasToBlob } from "@/lib/canvas";
+
 export type DocumentPoint = {
   x: number;
   y: number;
@@ -76,7 +78,10 @@ export async function createDocumentCorrectionPreview(imageUrl: string) {
   const detectedCorners = await detectDocumentCorners(imageUrl);
 
   return {
-    blob: await canvasToBlob(canvas),
+    blob: await canvasToBlob(canvas, {
+      quality: 0.92,
+      type: "image/jpeg",
+    }),
     corners: detectedCorners
       ? mapImageCornersToCropCorners(detectedCorners, source, image)
       : getInsetPreviewCorners(),
@@ -171,22 +176,5 @@ function loadImage(imageUrl: string) {
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error("Could not load captured image."));
     image.src = imageUrl;
-  });
-}
-
-function canvasToBlob(canvas: HTMLCanvasElement) {
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          reject(new Error("Could not export processed image."));
-          return;
-        }
-
-        resolve(blob);
-      },
-      "image/jpeg",
-      0.92,
-    );
   });
 }
