@@ -5,7 +5,10 @@ import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 
-import { saveActiveScanDraftPage } from "../../_lib/scan-drafts-db"
+import {
+  ACTIVE_SCAN_DRAFT_ID,
+  saveScanDraftPage,
+} from "../../_lib/scan-drafts-db"
 import {
   type ScanDraftPage,
   useScanDraftActions,
@@ -51,7 +54,7 @@ export function ReviewPreview({ page }: { page: ScanDraftPage | null }) {
     if (!correctedImage) return
 
     replacePageImage(page.id, URL.createObjectURL(correctedImage))
-    await saveActiveScanDraftPage({
+    await saveScanDraftPage(ACTIVE_SCAN_DRAFT_ID, {
       id: page.id,
       imageBlob: correctedImage,
       order: Math.max(

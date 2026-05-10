@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 
-import { updateActiveScanDraftPage } from "../../_lib/scan-drafts-db"
+import {
+  ACTIVE_SCAN_DRAFT_ID,
+  updateScanDraftPage,
+} from "../../_lib/scan-drafts-db"
 import {
   type ScanDraftPage,
   type ScanFilterId,
@@ -38,7 +41,7 @@ export function ReviewToolbar({
     if (!currentPage) return
 
     setPageFilter(currentPage.id, filter)
-    updateActiveScanDraftPage({
+    updateScanDraftPage(ACTIVE_SCAN_DRAFT_ID, {
       id: currentPage.id,
       filter,
     })
@@ -53,7 +56,7 @@ export function ReviewToolbar({
     ] as ScanPageRotation
 
     rotatePage(currentPage.id)
-    updateActiveScanDraftPage({
+    updateScanDraftPage(ACTIVE_SCAN_DRAFT_ID, {
       id: currentPage.id,
       rotation,
     })

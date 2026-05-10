@@ -8,15 +8,16 @@ import {
 } from "@/lib/local-db"
 
 export const ACTIVE_SCAN_DRAFT_ID = "active"
+export type ScanDraftId = typeof ACTIVE_SCAN_DRAFT_ID | (string & {})
 
-async function getOrCreateActiveScanDraft() {
-  const existingDraft = await localDb.drafts.get(ACTIVE_SCAN_DRAFT_ID)
+async function getOrCreateScanDraft(draftId: ScanDraftId) {
+  const existingDraft = await localDb.drafts.get(draftId)
 
   if (existingDraft) return existingDraft
 
   const now = Date.now()
   const draft = {
-    id: ACTIVE_SCAN_DRAFT_ID,
+    id: draftId,
     name: "",
     createdAt: now,
     updatedAt: now,
@@ -27,15 +28,15 @@ async function getOrCreateActiveScanDraft() {
   return draft
 }
 
-export async function loadActiveScanDraft() {
+export async function loadScanDraft(draftId: ScanDraftId) {
   try {
-    const draft = await localDb.drafts.get(ACTIVE_SCAN_DRAFT_ID)
+    const draft = await localDb.drafts.get(draftId)
 
     if (!draft) return null
 
     const pages = await localDb.draftPages
       .where("draftId")
-      .equals(ACTIVE_SCAN_DRAFT_ID)
+      .equals(draftId)
       .sortBy("order")
 
     return {
@@ -48,7 +49,7 @@ export async function loadActiveScanDraft() {
   }
 }
 
-export async function saveActiveScanDraftPage(input: {
+export async function saveScanDraftPage(draftId: ScanDraftId, input: {
   id: string
   imageBlob: Blob
   order: number
@@ -56,7 +57,7 @@ export async function saveActiveScanDraftPage(input: {
   filter: StoredScanFilterId
 }) {
   try {
-    const draft = await getOrCreateActiveScanDraft()
+    const draft = await getOrCreateScanDraft(draftId)
     const existingPage = await localDb.draftPages.get(input.id)
     const now = Date.now()
 
@@ -81,9 +82,9 @@ export async function saveActiveScanDraftPage(input: {
   }
 }
 
-export async function updateActiveScanDraftName(name: string) {
+export async function updateScanDraftName(draftId: ScanDraftId, name: string) {
   try {
-    const draft = await getOrCreateActiveScanDraft()
+    const draft = await getOrCreateScanDraft(draftId)
 
     await localDb.drafts.update(draft.id, {
       name,
@@ -94,14 +95,14 @@ export async function updateActiveScanDraftName(name: string) {
   }
 }
 
-export async function updateActiveScanDraftPage(input: {
+export async function updateScanDraftPage(draftId: ScanDraftId, input: {
   id: string
   order?: number
   rotation?: StoredScanPageRotation
   filter?: StoredScanFilterId
 }) {
   try {
-    const draft = await getOrCreateActiveScanDraft()
+    const draft = await getOrCreateScanDraft(draftId)
     const { id, ...changes } = input
     const now = Date.now()
 
@@ -124,9 +125,9 @@ export async function updateActiveScanDraftPage(input: {
   }
 }
 
-export async function deleteActiveScanDraftPage(pageId: string) {
+export async function deleteScanDraftPage(draftId: ScanDraftId, pageId: string) {
   try {
-    const draft = await getOrCreateActiveScanDraft()
+    const draft = await getOrCreateScanDraft(draftId)
 
     await localDb.transaction(
       "rw",
@@ -144,7 +145,7 @@ export async function deleteActiveScanDraftPage(pageId: string) {
   }
 }
 
-export async function clearActiveScanDraft() {
+export async function clearScanDraft(draftId: ScanDraftId) {
   try {
     await localDb.transaction(
       "rw",
@@ -153,9 +154,9 @@ export async function clearActiveScanDraft() {
       async () => {
         await localDb.draftPages
           .where("draftId")
-          .equals(ACTIVE_SCAN_DRAFT_ID)
+          .equals(draftId)
           .delete()
-        await localDb.drafts.delete(ACTIVE_SCAN_DRAFT_ID)
+        await localDb.drafts.delete(draftId)
       }
     )
   } catch (error) {

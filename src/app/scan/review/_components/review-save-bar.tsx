@@ -18,8 +18,9 @@ import { Input } from "@/components/ui/input"
 import { sanitizeFileName } from "@/lib/file"
 
 import {
-  clearActiveScanDraft,
-  updateActiveScanDraftName,
+  ACTIVE_SCAN_DRAFT_ID,
+  clearScanDraft,
+  updateScanDraftName,
 } from "../../_lib/scan-drafts-db"
 import {
   useScanDraftActions,
@@ -45,7 +46,7 @@ export function ReviewSaveBar() {
       const fallbackFileName = `doku_${Date.now()}`
       const pdfBlob = await createDraftPdf(pages)
 
-      await updateActiveScanDraftName(documentName)
+      await updateScanDraftName(ACTIVE_SCAN_DRAFT_ID, documentName)
       downloadPdf(
         pdfBlob,
         `${sanitizeFileName(name, fallbackFileName)}.pdf`
@@ -71,7 +72,7 @@ export function ReviewSaveBar() {
 
   async function handleDiscardDraft() {
     resetDraft()
-    await clearActiveScanDraft()
+    await clearScanDraft(ACTIVE_SCAN_DRAFT_ID)
     router.push("/")
   }
 

@@ -9,7 +9,10 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 
-import { saveActiveScanDraftPage } from "../_lib/scan-drafts-db"
+import {
+  ACTIVE_SCAN_DRAFT_ID,
+  saveScanDraftPage,
+} from "../_lib/scan-drafts-db"
 import { type CameraPreviewState } from "../_hooks/use-camera-preview"
 import {
   type ScanDraftPage,
@@ -48,7 +51,7 @@ export function ScanFooter({
         : pages.length
 
       upsertPage(page)
-      await saveActiveScanDraftPage({
+      await saveScanDraftPage(ACTIVE_SCAN_DRAFT_ID, {
         id: page.id,
         imageBlob: blob,
         order: pageOrder < 0 ? pages.length : pageOrder,

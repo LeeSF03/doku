@@ -15,8 +15,8 @@ import { createStore } from "zustand/vanilla"
 import { RestoreActiveDraftDialog } from "../_components/restore-active-draft-dialog"
 import {
   ACTIVE_SCAN_DRAFT_ID,
-  clearActiveScanDraft,
-  loadActiveScanDraft,
+  clearScanDraft,
+  loadScanDraft,
 } from "../_lib/scan-drafts-db"
 
 export type ScanFilterId = "original" | "bw" | "grayscale" | "color"
@@ -58,13 +58,13 @@ const ScanDraftStoreContext = createContext<ScanDraftStore | null>(null)
 export function ScanProvider({ children }: { children: ReactNode }) {
   const [store] = useState(createScanDraftStore)
   const [pendingDraft, setPendingDraft] =
-    useState<Awaited<ReturnType<typeof loadActiveScanDraft>>>(null)
+    useState<Awaited<ReturnType<typeof loadScanDraft>>>(null)
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
-    loadActiveScanDraft().then((draft) => {
+    loadScanDraft(ACTIVE_SCAN_DRAFT_ID).then((draft) => {
       if (cancelled) return
 
       if (draft?.pages.length) {
@@ -98,7 +98,7 @@ export function ScanProvider({ children }: { children: ReactNode }) {
   }
 
   async function handleDiscardActiveDraft() {
-    await clearActiveScanDraft()
+    await clearScanDraft(ACTIVE_SCAN_DRAFT_ID)
     store.getState().actions.restoreActiveDraft([])
     setPendingDraft(null)
     setRestoreDialogOpen(false)

@@ -11,7 +11,10 @@ import {
 
 import { cn } from "@/lib/utils"
 
-import { deleteActiveScanDraftPage } from "../../_lib/scan-drafts-db"
+import {
+  ACTIVE_SCAN_DRAFT_ID,
+  deleteScanDraftPage,
+} from "../../_lib/scan-drafts-db"
 import {
   useScanDraftActions,
   useScanDraftStore,
@@ -43,7 +46,7 @@ export function ReviewPageCarousel({
     const nextSelectedPage = pages[pageIndex + 1] ?? pages[pageIndex - 1]
 
     removePage(pageId)
-    await deleteActiveScanDraftPage(pageId)
+    await deleteScanDraftPage(ACTIVE_SCAN_DRAFT_ID, pageId)
 
     if (nextSelectedPage) {
       await setSelectedPageId(nextSelectedPage.id)
