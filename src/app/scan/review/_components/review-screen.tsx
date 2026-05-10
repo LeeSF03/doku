@@ -10,7 +10,7 @@ import { ReviewSaveBar } from "./review-save-bar"
 import { ReviewToolbar } from "./review-toolbar"
 
 export function ReviewScreen() {
-  const [draftPageId] = useQueryState("draft-page-id")
+  const [draftPageId, setDraftPageId] = useQueryState("draft-page-id")
   const currentPage = useScanDraftStore((state) => {
     if (!draftPageId) return state.pages.at(-1) ?? null
 
@@ -27,7 +27,10 @@ export function ReviewScreen() {
 
       <main className="flex-1 px-5 pt-4 pb-48">
         <ReviewPreview key={currentPage?.id} page={currentPage} />
-        <ReviewPageCarousel />
+        <ReviewPageCarousel
+          selectedPageId={currentPage?.id ?? null}
+          setSelectedPageId={setDraftPageId}
+        />
         <ReviewToolbar currentPage={currentPage} />
       </main>
 

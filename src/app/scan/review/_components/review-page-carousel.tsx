@@ -2,7 +2,6 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 
 import { Trash2 } from "lucide-react"
-import { useQueryState } from "nuqs"
 
 import {
   Carousel,
@@ -17,10 +16,17 @@ import {
   useScanDraftStore,
 } from "../../_providers/scan-provider"
 
-export function ReviewPageCarousel() {
+type ReviewPageCarouselProps = {
+  selectedPageId: string | null
+  setSelectedPageId: (pageId: string | null) => Promise<URLSearchParams>
+}
+
+export function ReviewPageCarousel({
+  selectedPageId,
+  setSelectedPageId,
+}: ReviewPageCarouselProps) {
   const router = useRouter()
   const pages = useScanDraftStore((state) => state.pages)
-  const [draftPageId, setDraftPageId] = useQueryState("draft-page-id")
   const { removePage } = useScanDraftActions()
 
   if (pages.length === 0) {
@@ -31,7 +37,7 @@ export function ReviewPageCarousel() {
     )
   }
 
-  const selectedPageId = draftPageId ?? pages.at(-1)?.id
+  const activePageId = selectedPageId ?? pages.at(-1)?.id
 
   const handleRemovePage = async (pageId: string) => {
     const pageIndex = pages.findIndex((page) => page.id === pageId)
@@ -40,9 +46,9 @@ export function ReviewPageCarousel() {
     removePage(pageId)
 
     if (nextSelectedPage) {
-      await setDraftPageId(nextSelectedPage.id)
+      await setSelectedPageId(nextSelectedPage.id)
     } else {
-      await setDraftPageId(null)
+      await setSelectedPageId(null)
       router.replace("/scan")
     }
   }
@@ -61,14 +67,14 @@ export function ReviewPageCarousel() {
       <Carousel className="mt-2" opts={{ align: "start", dragFree: true }}>
         <CarouselContent className="-ml-3">
           {pages.map((page, index) => {
-            const selected = page.id === selectedPageId
+            const selected = page.id === activePageId
 
             return (
               <CarouselItem key={page.id} className="basis-auto pl-3">
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setDraftPageId(page.id)}
+                    onClick={() => setSelectedPageId(page.id)}
                     aria-current={selected ? "page" : undefined}
                     className={cn(
                       "bg-muted relative h-20 w-16 overflow-hidden rounded-lg border transition-colors",
