@@ -5,11 +5,22 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 
 import { sanitizeFileName } from "@/lib/file"
 
-import { clearActiveScanDraft } from "../../_lib/scan-drafts-db"
+import {
+  clearActiveScanDraft,
+  updateActiveScanDraftName,
+} from "../../_lib/scan-drafts-db"
 import {
   useScanDraftActions,
   useScanDraftStore,
@@ -22,6 +33,7 @@ export function ReviewSaveBar() {
   const { resetDraft } = useScanDraftActions()
   const [name, setName] = useState("")
   const [saving, setSaving] = useState(false)
+  const [keepDraftDialogOpen, setKeepDraftDialogOpen] = useState(false)
 
   const handleSave = async () => {
     if (saving) return
@@ -33,6 +45,7 @@ export function ReviewSaveBar() {
       const fallbackFileName = `doku_${Date.now()}`
       const pdfBlob = await createDraftPdf(pages)
 
+      await updateActiveScanDraftName(documentName)
       downloadPdf(
         pdfBlob,
         `${sanitizeFileName(name, fallbackFileName)}.pdf`
@@ -40,9 +53,7 @@ export function ReviewSaveBar() {
       toast.success("Document saved", {
         description: documentName,
       })
-      resetDraft()
-      await clearActiveScanDraft()
-      router.push("/")
+      setKeepDraftDialogOpen(true)
     } catch (error) {
       toast.error("Could not save document", {
         description:
@@ -51,6 +62,17 @@ export function ReviewSaveBar() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleKeepDraft() {
+    resetDraft()
+    router.push("/")
+  }
+
+  async function handleDiscardDraft() {
+    resetDraft()
+    await clearActiveScanDraft()
+    router.push("/")
   }
 
   return (
@@ -73,6 +95,28 @@ export function ReviewSaveBar() {
           {saving ? "Saving..." : "Save Document"}
         </Button>
       </div>
+
+      <Dialog open={keepDraftDialogOpen}>
+        <DialogContent
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Keep this draft?</DialogTitle>
+            <DialogDescription>
+              Your PDF has been exported. Keep the draft if you want to edit or
+              export it again later.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleDiscardDraft}>
+              Discard draft
+            </Button>
+            <Button onClick={handleKeepDraft}>Keep draft</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
