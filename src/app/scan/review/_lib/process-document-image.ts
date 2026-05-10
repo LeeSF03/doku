@@ -23,9 +23,13 @@ export async function transformDocumentImage(
   imageUrl: string,
   corners: DocumentCorners
 ) {
-  const image = await loadImage(imageUrl)
+  const imageResponse = await fetch(imageUrl)
 
-  return transformDocumentWithGammaCv(image, corners)
+  if (!imageResponse.ok) {
+    throw new Error("Could not load document image for transform.")
+  }
+
+  return transformDocumentWithGammaCv(await imageResponse.blob(), corners)
 }
 
 export async function createDocumentCorrectionPreview(imageUrl: string) {

@@ -1,6 +1,7 @@
 "use client"
 
 import { canvasToBlob } from "@/lib/canvas"
+import { getGammaCv, type Gammacv } from "@/lib/gammacv"
 
 export type TransformDocumentPoint = {
   x: number
@@ -14,46 +15,50 @@ export type TransformDocumentCorners = [
   TransformDocumentPoint,
 ]
 
-type Gammacv = typeof import("gammacv")
-
 export async function transformDocumentWithGammaCv(
-  image: HTMLImageElement,
+  imageBlob: Blob,
   corners: TransformDocumentCorners
 ) {
-  const gm = await import("gammacv")
+  const gm = await getGammaCv()
   const startedAt = performance.now()
-  const sourceCanvas = createSourceCanvas(image)
-  const pixelCorners = orderCorners(
-    corners.map((corner) => ({
-      x: clamp(corner.x) * image.naturalWidth,
-      y: clamp(corner.y) * image.naturalHeight,
-    }))
-  )
-  const { width, height } = getTransformSize(pixelCorners)
-  const transformedCanvas = correctGammaCvCanvasOrientation(
-    runGammaCvPerspectiveTransform(
-      gm,
-      sourceCanvas,
-      pixelCorners,
-      width,
-      height
+  const image = await createImageBitmap(imageBlob)
+
+  try {
+    const sourceCanvas = createSourceCanvas(image)
+    const pixelCorners = orderCorners(
+      corners.map((corner) => ({
+        x: clamp(corner.x) * image.width,
+        y: clamp(corner.y) * image.height,
+      }))
     )
-  )
+    const { width, height } = getTransformSize(pixelCorners)
+    const transformedCanvas = correctGammaCvCanvasOrientation(
+      runGammaCvPerspectiveTransform(
+        gm,
+        sourceCanvas,
+        pixelCorners,
+        width,
+        height
+      )
+    )
 
-  console.log("[document-transform:gammacv] Transform completed.", {
-    corners: pixelCorners,
-    elapsedMs: Math.round(performance.now() - startedAt),
-    height,
-    width,
-  })
+    console.log("[document-transform:gammacv] Transform completed.", {
+      corners: pixelCorners,
+      elapsedMs: Math.round(performance.now() - startedAt),
+      height,
+      width,
+    })
 
-  return canvasToBlob(transformedCanvas, {
-    quality: 0.92,
-    type: "image/jpeg",
-  })
+    return canvasToBlob(transformedCanvas, {
+      quality: 0.92,
+      type: "image/jpeg",
+    })
+  } finally {
+    image.close()
+  }
 }
 
-function createSourceCanvas(image: HTMLImageElement) {
+function createSourceCanvas(image: ImageBitmap) {
   const canvas = document.createElement("canvas")
   const context = canvas.getContext("2d")
 
@@ -61,8 +66,8 @@ function createSourceCanvas(image: HTMLImageElement) {
     throw new Error("Could not create GammaCV transform canvas.")
   }
 
-  canvas.width = image.naturalWidth
-  canvas.height = image.naturalHeight
+  canvas.width = image.width
+  canvas.height = image.height
   context.drawImage(image, 0, 0, canvas.width, canvas.height)
 
   return canvas
@@ -151,10 +156,18 @@ function orderCorners(points: TransformDocumentPoint[]) {
   const topRight = maxBy(points, (point) => point.x - point.y)
   const bottomLeft = minBy(points, (point) => point.x - point.y)
 
-  return [topLeft, topRight, bottomRight, bottomLeft] as TransformDocumentCorners
+  return [
+    topLeft,
+    topRight,
+    bottomRight,
+    bottomLeft,
+  ] as TransformDocumentCorners
 }
 
-function distance(pointA: TransformDocumentPoint, pointB: TransformDocumentPoint) {
+function distance(
+  pointA: TransformDocumentPoint,
+  pointB: TransformDocumentPoint
+) {
   return Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y)
 }
 

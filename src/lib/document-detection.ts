@@ -1,5 +1,11 @@
 "use client"
 
+import {
+  getGammaCv,
+  type Gammacv,
+  type GammaOutput,
+} from "@/lib/gammacv"
+
 export type DetectedDocumentPoint = {
   x: number
   y: number
@@ -11,9 +17,6 @@ export type DetectedDocumentCorners = [
   DetectedDocumentPoint,
   DetectedDocumentPoint,
 ]
-
-type Gammacv = typeof import("gammacv")
-type GammaOutput = NonNullable<ReturnType<Gammacv["tensorFrom"]>>
 
 type DetectedLine = {
   angle: number
@@ -42,7 +45,7 @@ export async function detectDocumentCornersWithGammaCv(
   const startedAt = performance.now()
 
   try {
-    const gm = await import("gammacv")
+    const gm = await getGammaCv()
     const canvas = createDetectionCanvas(image)
     const corners = runGammaCvLineDetection(gm, canvas)
 
