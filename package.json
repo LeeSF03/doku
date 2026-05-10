@@ -13,6 +13,7 @@
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dexie": "^4.4.2",
     "embla-carousel-react": "^8.6.0",
     "es-toolkit": "^1.46.0",
     "gammacv": "^0.5.3",
