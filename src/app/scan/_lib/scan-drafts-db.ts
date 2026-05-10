@@ -49,6 +49,30 @@ export async function loadScanDraft(draftId: ScanDraftId) {
   }
 }
 
+export async function listScanDrafts() {
+  try {
+    const drafts = await localDb.drafts.orderBy("updatedAt").reverse().toArray()
+
+    return Promise.all(
+      drafts.map(async (draft) => {
+        const pages = await localDb.draftPages
+          .where("draftId")
+          .equals(draft.id)
+          .sortBy("order")
+
+        return {
+          ...draft,
+          pageCount: pages.length,
+          thumbnailBlob: pages[0]?.imageBlob ?? null,
+        }
+      })
+    )
+  } catch (error) {
+    logPersistError(error)
+    return []
+  }
+}
+
 export async function saveScanDraftPage(draftId: ScanDraftId, input: {
   id: string
   imageBlob: Blob
@@ -90,6 +114,51 @@ export async function updateScanDraftName(draftId: ScanDraftId, name: string) {
       name,
       updatedAt: Date.now(),
     })
+  } catch (error) {
+    logPersistError(error)
+  }
+}
+
+export async function finalizeScanDraft(input: {
+  sourceDraftId: ScanDraftId
+  targetDraftId: ScanDraftId
+  name: string
+}) {
+  try {
+    const draft = await localDb.drafts.get(input.sourceDraftId)
+
+    if (!draft) return
+
+    const pages = await localDb.draftPages
+      .where("draftId")
+      .equals(input.sourceDraftId)
+      .toArray()
+    const now = Date.now()
+
+    await localDb.transaction(
+      "rw",
+      localDb.drafts,
+      localDb.draftPages,
+      async () => {
+        await localDb.drafts.delete(input.sourceDraftId)
+        await localDb.drafts.put({
+          ...draft,
+          id: input.targetDraftId,
+          name: input.name,
+          updatedAt: now,
+        })
+
+        await Promise.all(
+          pages.map((page) =>
+            localDb.draftPages.put({
+              ...page,
+              draftId: input.targetDraftId,
+              updatedAt: now,
+            })
+          )
+        )
+      }
+    )
   } catch (error) {
     logPersistError(error)
   }

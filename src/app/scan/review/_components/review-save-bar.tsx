@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -20,6 +20,7 @@ import { sanitizeFileName } from "@/lib/file"
 import {
   ACTIVE_SCAN_DRAFT_ID,
   clearScanDraft,
+  finalizeScanDraft,
   updateScanDraftName,
 } from "../../_lib/scan-drafts-db"
 import {
@@ -33,47 +34,51 @@ export function ReviewSaveBar() {
   const pages = useScanDraftStore((state) => state.pages)
   const { resetDraft } = useScanDraftActions()
   const [name, setName] = useState("")
-  const [saving, setSaving] = useState(false)
   const [keepDraftDialogOpen, setKeepDraftDialogOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
-  const handleSave = async () => {
-    if (saving) return
+  const handleSave = () => {
+    if (isPending) return
 
-    setSaving(true)
+    startTransition(async () => {
+      try {
+        const documentName = name.trim() || "Untitled document"
+        const fallbackFileName = `doku_${Date.now()}`
+        const pdfBlob = await createDraftPdf(pages)
 
-    try {
-      const documentName = name.trim() || "Untitled document"
-      const fallbackFileName = `doku_${Date.now()}`
-      const pdfBlob = await createDraftPdf(pages)
-
-      await updateScanDraftName(ACTIVE_SCAN_DRAFT_ID, documentName)
-      downloadPdf(
-        pdfBlob,
-        `${sanitizeFileName(name, fallbackFileName)}.pdf`
-      )
-      toast.success("Document saved", {
-        description: documentName,
-      })
-      setKeepDraftDialogOpen(true)
-    } catch (error) {
-      toast.error("Could not save document", {
-        description:
-          error instanceof Error ? error.message : "Try again in a moment.",
-      })
-    } finally {
-      setSaving(false)
-    }
+        await updateScanDraftName(ACTIVE_SCAN_DRAFT_ID, documentName)
+        downloadPdf(pdfBlob, `${sanitizeFileName(name, fallbackFileName)}.pdf`)
+        toast.success("Document saved", {
+          description: documentName,
+        })
+        setKeepDraftDialogOpen(true)
+      } catch (error) {
+        toast.error("Could not save document", {
+          description:
+            error instanceof Error ? error.message : "Try again in a moment.",
+        })
+      }
+    })
   }
 
   function handleKeepDraft() {
-    resetDraft()
-    router.push("/")
+    startTransition(async () => {
+      await finalizeScanDraft({
+        sourceDraftId: ACTIVE_SCAN_DRAFT_ID,
+        targetDraftId: crypto.randomUUID(),
+        name: name.trim() || "Untitled document",
+      })
+      resetDraft()
+      router.push("/")
+    })
   }
 
-  async function handleDiscardDraft() {
-    resetDraft()
-    await clearScanDraft(ACTIVE_SCAN_DRAFT_ID)
-    router.push("/")
+  function handleDiscardDraft() {
+    startTransition(async () => {
+      resetDraft()
+      await clearScanDraft(ACTIVE_SCAN_DRAFT_ID)
+      router.push("/")
+    })
   }
 
   return (
@@ -89,11 +94,11 @@ export function ReviewSaveBar() {
 
         <Button
           onClick={handleSave}
-          disabled={pages.length === 0 || saving}
+          disabled={pages.length === 0 || isPending}
           size="lg"
           className="h-14 w-full rounded-full text-base"
         >
-          {saving ? "Saving..." : "Save Document"}
+          {isPending ? "Saving..." : "Save Document"}
         </Button>
       </div>
 
