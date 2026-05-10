@@ -17,12 +17,7 @@ import { Input } from "@/components/ui/input"
 
 import { sanitizeFileName } from "@/lib/file"
 
-import {
-  ACTIVE_SCAN_DRAFT_ID,
-  clearScanDraft,
-  finalizeScanDraft,
-  updateScanDraftName,
-} from "../../_lib/scan-drafts-db"
+import { saveScanDraft } from "../../_lib/scan-drafts-db"
 import {
   useScanDraftActions,
   useScanDraftStore,
@@ -46,7 +41,6 @@ export function ReviewSaveBar() {
         const fallbackFileName = `doku_${Date.now()}`
         const pdfBlob = await createDraftPdf(pages)
 
-        await updateScanDraftName(ACTIVE_SCAN_DRAFT_ID, documentName)
         downloadPdf(pdfBlob, `${sanitizeFileName(name, fallbackFileName)}.pdf`)
         toast.success("Document saved", {
           description: documentName,
@@ -63,10 +57,22 @@ export function ReviewSaveBar() {
 
   function handleKeepDraft() {
     startTransition(async () => {
-      await finalizeScanDraft({
-        sourceDraftId: ACTIVE_SCAN_DRAFT_ID,
-        targetDraftId: crypto.randomUUID(),
+      await saveScanDraft({
+        id: crypto.randomUUID(),
         name: name.trim() || "Untitled document",
+        pages: await Promise.all(
+          pages.map(async (page, index) => {
+            const imageResponse = await fetch(page.imageUrl)
+
+            return {
+              id: page.id,
+              imageBlob: await imageResponse.blob(),
+              order: index,
+              rotation: page.rotation,
+              filter: page.filter,
+            }
+          })
+        ),
       })
       resetDraft()
       router.push("/")
@@ -76,7 +82,6 @@ export function ReviewSaveBar() {
   function handleDiscardDraft() {
     startTransition(async () => {
       resetDraft()
-      await clearScanDraft(ACTIVE_SCAN_DRAFT_ID)
       router.push("/")
     })
   }

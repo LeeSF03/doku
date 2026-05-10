@@ -2,31 +2,13 @@
 
 import {
   type StoredScanDraft,
+  type StoredScanDraftPage,
   type StoredScanFilterId,
   type StoredScanPageRotation,
   localDb,
 } from "@/lib/local-db"
 
-export const ACTIVE_SCAN_DRAFT_ID = "active"
-export type ScanDraftId = typeof ACTIVE_SCAN_DRAFT_ID | (string & {})
-
-async function getOrCreateScanDraft(draftId: ScanDraftId) {
-  const existingDraft = await localDb.drafts.get(draftId)
-
-  if (existingDraft) return existingDraft
-
-  const now = Date.now()
-  const draft = {
-    id: draftId,
-    name: "",
-    createdAt: now,
-    updatedAt: now,
-  } satisfies StoredScanDraft
-
-  await localDb.drafts.put(draft)
-
-  return draft
-}
+export type ScanDraftId = string
 
 export async function loadScanDraft(draftId: ScanDraftId) {
   try {
@@ -73,90 +55,39 @@ export async function listScanDrafts() {
   }
 }
 
-export async function saveScanDraftPage(draftId: ScanDraftId, input: {
-  id: string
-  imageBlob: Blob
-  order: number
-  rotation: StoredScanPageRotation
-  filter: StoredScanFilterId
-}) {
-  try {
-    const draft = await getOrCreateScanDraft(draftId)
-    const existingPage = await localDb.draftPages.get(input.id)
-    const now = Date.now()
-
-    await localDb.transaction(
-      "rw",
-      localDb.drafts,
-      localDb.draftPages,
-      async () => {
-        await localDb.draftPages.put({
-          ...input,
-          draftId: draft.id,
-          createdAt: existingPage?.createdAt ?? now,
-          updatedAt: now,
-        })
-        await localDb.drafts.update(draft.id, {
-          updatedAt: now,
-        })
-      }
-    )
-  } catch (error) {
-    logPersistError(error)
-  }
-}
-
-export async function updateScanDraftName(draftId: ScanDraftId, name: string) {
-  try {
-    const draft = await getOrCreateScanDraft(draftId)
-
-    await localDb.drafts.update(draft.id, {
-      name,
-      updatedAt: Date.now(),
-    })
-  } catch (error) {
-    logPersistError(error)
-  }
-}
-
-export async function finalizeScanDraft(input: {
-  sourceDraftId: ScanDraftId
-  targetDraftId: ScanDraftId
+export async function saveScanDraft(input: {
+  id: ScanDraftId
   name: string
+  pages: Array<{
+    id: string
+    imageBlob: Blob
+    order: number
+    rotation: StoredScanPageRotation
+    filter: StoredScanFilterId
+  }>
 }) {
   try {
-    const draft = await localDb.drafts.get(input.sourceDraftId)
-
-    if (!draft) return
-
-    const pages = await localDb.draftPages
-      .where("draftId")
-      .equals(input.sourceDraftId)
-      .toArray()
     const now = Date.now()
+    const draft = {
+      id: input.id,
+      name: input.name,
+      createdAt: now,
+      updatedAt: now,
+    } satisfies StoredScanDraft
+    const pages = input.pages.map((page) => ({
+      ...page,
+      draftId: input.id,
+      createdAt: now,
+      updatedAt: now,
+    })) satisfies StoredScanDraftPage[]
 
     await localDb.transaction(
       "rw",
       localDb.drafts,
       localDb.draftPages,
       async () => {
-        await localDb.drafts.delete(input.sourceDraftId)
-        await localDb.drafts.put({
-          ...draft,
-          id: input.targetDraftId,
-          name: input.name,
-          updatedAt: now,
-        })
-
-        await Promise.all(
-          pages.map((page) =>
-            localDb.draftPages.put({
-              ...page,
-              draftId: input.targetDraftId,
-              updatedAt: now,
-            })
-          )
-        )
+        await localDb.drafts.put(draft)
+        await localDb.draftPages.bulkPut(pages)
       }
     )
   } catch (error) {
@@ -164,67 +95,14 @@ export async function finalizeScanDraft(input: {
   }
 }
 
-export async function updateScanDraftPage(draftId: ScanDraftId, input: {
-  id: string
-  order?: number
-  rotation?: StoredScanPageRotation
-  filter?: StoredScanFilterId
-}) {
-  try {
-    const draft = await getOrCreateScanDraft(draftId)
-    const { id, ...changes } = input
-    const now = Date.now()
-
-    await localDb.transaction(
-      "rw",
-      localDb.drafts,
-      localDb.draftPages,
-      async () => {
-        await localDb.draftPages.update(id, {
-          ...changes,
-          updatedAt: now,
-        })
-        await localDb.drafts.update(draft.id, {
-          updatedAt: now,
-        })
-      }
-    )
-  } catch (error) {
-    logPersistError(error)
-  }
-}
-
-export async function deleteScanDraftPage(draftId: ScanDraftId, pageId: string) {
-  try {
-    const draft = await getOrCreateScanDraft(draftId)
-
-    await localDb.transaction(
-      "rw",
-      localDb.drafts,
-      localDb.draftPages,
-      async () => {
-        await localDb.draftPages.delete(pageId)
-        await localDb.drafts.update(draft.id, {
-          updatedAt: Date.now(),
-        })
-      }
-    )
-  } catch (error) {
-    logPersistError(error)
-  }
-}
-
-export async function clearScanDraft(draftId: ScanDraftId) {
+export async function deleteScanDraft(draftId: ScanDraftId) {
   try {
     await localDb.transaction(
       "rw",
       localDb.drafts,
       localDb.draftPages,
       async () => {
-        await localDb.draftPages
-          .where("draftId")
-          .equals(draftId)
-          .delete()
+        await localDb.draftPages.where("draftId").equals(draftId).delete()
         await localDb.drafts.delete(draftId)
       }
     )

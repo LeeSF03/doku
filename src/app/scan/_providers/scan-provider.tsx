@@ -12,13 +12,6 @@ import { minBy } from "es-toolkit"
 import { useStore } from "zustand"
 import { createStore } from "zustand/vanilla"
 
-import { RestoreActiveDraftDialog } from "../_components/restore-active-draft-dialog"
-import {
-  ACTIVE_SCAN_DRAFT_ID,
-  clearScanDraft,
-  loadScanDraft,
-} from "../_lib/scan-drafts-db"
-
 export type ScanFilterId = "original" | "bw" | "grayscale" | "color"
 export type ScanPageRotation = 0 | 90 | 180 | 270
 const scanPageRotationOption = [0, 90, 180, 270] as const
@@ -37,7 +30,6 @@ type ScanDraftState = {
 }
 
 type ScanDraftActions = {
-  restoreActiveDraft: (pages: ScanDraftPage[]) => void
   upsertPage: (page: ScanDraftPage) => void
   removePage: (pageId: string) => void
   replacePageImage: (pageId: string, imageUrl: string) => void
@@ -57,65 +49,16 @@ const ScanDraftStoreContext = createContext<ScanDraftStore | null>(null)
 
 export function ScanProvider({ children }: { children: ReactNode }) {
   const [store] = useState(createScanDraftStore)
-  const [pendingDraft, setPendingDraft] =
-    useState<Awaited<ReturnType<typeof loadScanDraft>>>(null)
-  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
-
-    loadScanDraft(ACTIVE_SCAN_DRAFT_ID).then((draft) => {
-      if (cancelled) return
-
-      if (draft?.pages.length) {
-        setPendingDraft(draft)
-        setRestoreDialogOpen(true)
-        return
-      }
-
-      store.getState().actions.restoreActiveDraft([])
-    })
-
     return () => {
-      cancelled = true
       revokePageImageUrls(store.getState().pages)
     }
   }, [store])
 
-  function handleRestoreActiveDraft() {
-    if (!pendingDraft) return
-
-    store.getState().actions.restoreActiveDraft(
-      pendingDraft.pages.map((page) => ({
-        id: page.id,
-        imageUrl: URL.createObjectURL(page.imageBlob),
-        rotation: page.rotation,
-        filter: page.filter,
-      }))
-    )
-    setPendingDraft(null)
-    setRestoreDialogOpen(false)
-  }
-
-  async function handleDiscardActiveDraft() {
-    await clearScanDraft(ACTIVE_SCAN_DRAFT_ID)
-    store.getState().actions.restoreActiveDraft([])
-    setPendingDraft(null)
-    setRestoreDialogOpen(false)
-  }
-
-  const pendingPageCount = pendingDraft?.pages.length ?? 0
-
   return (
     <ScanDraftStoreContext.Provider value={store}>
       {children}
-      <RestoreActiveDraftDialog
-        open={restoreDialogOpen}
-        pageCount={pendingPageCount}
-        onDiscard={handleDiscardActiveDraft}
-        onRestore={handleRestoreActiveDraft}
-        onInteractOutside={() => setRestoreDialogOpen(false)}
-      />
     </ScanDraftStoreContext.Provider>
   )
 }
@@ -146,15 +89,6 @@ function createScanDraftStore() {
   return createStore<ScanDraftState>()((set) => ({
     ...initialScanDraftState,
     actions: {
-      restoreActiveDraft: (pages) =>
-        set((state) => {
-          revokePageImageUrls(state.pages)
-
-          return {
-            draftId: ACTIVE_SCAN_DRAFT_ID,
-            pages,
-          }
-        }),
       upsertPage: (page) =>
         set((state) => {
           const pageExists = state.pages.some(
@@ -226,7 +160,6 @@ function createScanDraftStore() {
 
           return {
             ...initialScanDraftState,
-            draftId: ACTIVE_SCAN_DRAFT_ID,
           }
         }),
     },

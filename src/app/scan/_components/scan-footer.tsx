@@ -9,10 +9,6 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 
-import {
-  ACTIVE_SCAN_DRAFT_ID,
-  saveScanDraftPage,
-} from "../_lib/scan-drafts-db"
 import { type CameraPreviewState } from "../_hooks/use-camera-preview"
 import {
   type ScanDraftPage,
@@ -46,18 +42,7 @@ export function ScanFooter({
         rotation: 0,
         filter: "original" as const,
       }
-      const pageOrder = replacePageId
-        ? pages.findIndex((draftPage) => draftPage.id === replacePageId)
-        : pages.length
-
       upsertPage(page)
-      await saveScanDraftPage(ACTIVE_SCAN_DRAFT_ID, {
-        id: page.id,
-        imageBlob: blob,
-        order: pageOrder < 0 ? pages.length : pageOrder,
-        rotation: page.rotation,
-        filter: page.filter,
-      })
       router.push(`/scan/review?draft-page-id=${encodeURIComponent(page.id)}`)
     } catch (error) {
       toast.error("Could not capture page", {

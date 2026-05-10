@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { DraftGrid } from "./_components/draft-grid"
 import { HomeHeader } from "./_components/home-header"
 import { ScanDocumentButton } from "./_components/scan-document-button"
-import { clearScanDraft, listScanDrafts } from "./scan/_lib/scan-drafts-db"
+import { deleteScanDraft, listScanDrafts } from "./scan/_lib/scan-drafts-db"
 
 type DraftCard = Awaited<ReturnType<typeof listScanDrafts>>[number] & {
   thumbnailUrl: string | null
@@ -44,7 +44,7 @@ export default function Home() {
   }, [])
 
   async function handleDeleteDraft(draft: DraftCard) {
-    await clearScanDraft(draft.id)
+    await deleteScanDraft(draft.id)
 
     if (draft.thumbnailUrl) URL.revokeObjectURL(draft.thumbnailUrl)
 

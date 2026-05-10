@@ -6,13 +6,8 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 import {
-  ACTIVE_SCAN_DRAFT_ID,
-  saveScanDraftPage,
-} from "../../_lib/scan-drafts-db"
-import {
   type ScanDraftPage,
   useScanDraftActions,
-  useScanDraftStore,
 } from "../../_providers/scan-provider"
 import { useCorrectionPreview } from "../_hooks/use-correction-preview"
 import {
@@ -24,7 +19,6 @@ import { ReviewPrimaryActionBar } from "./review-primary-actions-bar"
 
 export function ReviewPreview({ page }: { page: ScanDraftPage | null }) {
   const { replacePageImage } = useScanDraftActions()
-  const pages = useScanDraftStore((state) => state.pages)
   const {
     createCorrectedImage,
     createCorrectionPreview,
@@ -54,16 +48,6 @@ export function ReviewPreview({ page }: { page: ScanDraftPage | null }) {
     if (!correctedImage) return
 
     replacePageImage(page.id, URL.createObjectURL(correctedImage))
-    await saveScanDraftPage(ACTIVE_SCAN_DRAFT_ID, {
-      id: page.id,
-      imageBlob: correctedImage,
-      order: Math.max(
-        0,
-        pages.findIndex((draftPage) => draftPage.id === page.id)
-      ),
-      rotation: page.rotation,
-      filter: page.filter,
-    })
     setCorrectionPreview(null)
     toast.success("Current page replaced")
   }
