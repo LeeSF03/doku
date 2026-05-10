@@ -25,11 +25,12 @@ export function ReviewSaveBar() {
 
     try {
       const documentName = name.trim() || "Untitled document"
+      const fallbackFileName = `doku_${Date.now()}`
       const pdfBlob = await createDraftPdf(pages)
 
       downloadPdf(
         pdfBlob,
-        `${sanitizeFileName(documentName, "Untitled document")}.pdf`
+        `${sanitizeFileName(name, fallbackFileName)}.pdf`
       )
       toast.success("Document saved", {
         description: documentName,
