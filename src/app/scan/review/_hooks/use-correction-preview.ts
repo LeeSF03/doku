@@ -24,14 +24,12 @@ export type CorrectionPreview = {
   imageUrl: string
 }
 
-export type SetCorrectionPreview = (preview: CorrectionPreview | null) => void
-
 export function useCorrectionPreview() {
   const [status, setStatus] = useState<PreviewCorrectionStatus>("idle")
   const [preview, setPreview] = useImmer<CorrectionPreview | null>(null)
   const previewRef = useRef<CorrectionPreview | null>(null)
 
-  const setCorrectionPreview: SetCorrectionPreview = (nextPreview) => {
+  const setCorrectionPreview = (nextPreview: CorrectionPreview | null) => {
     setPreview((currentPreview) => {
       const currentImageUrl = currentPreview?.imageUrl
 

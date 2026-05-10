@@ -10,9 +10,11 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 
+import { updateActiveScanDraftPage } from "../../_lib/scan-drafts-db"
 import {
   type ScanDraftPage,
   type ScanFilterId,
+  type ScanPageRotation,
   useScanDraftActions,
 } from "../../_providers/scan-provider"
 
@@ -22,6 +24,7 @@ const filters = [
   { id: "grayscale", label: "Grayscale" },
   { id: "color", label: "Color" },
 ] as const
+const scanPageRotationOption = [0, 90, 180, 270] as const
 
 export function ReviewToolbar({
   currentPage,
@@ -35,6 +38,25 @@ export function ReviewToolbar({
     if (!currentPage) return
 
     setPageFilter(currentPage.id, filter)
+    updateActiveScanDraftPage({
+      id: currentPage.id,
+      filter,
+    })
+  }
+
+  const handleRotatePage = () => {
+    if (!currentPage) return
+
+    const rotation = scanPageRotationOption[
+      (scanPageRotationOption.indexOf(currentPage.rotation) + 1) %
+        scanPageRotationOption.length
+    ] as ScanPageRotation
+
+    rotatePage(currentPage.id)
+    updateActiveScanDraftPage({
+      id: currentPage.id,
+      rotation,
+    })
   }
 
   return (
@@ -43,7 +65,7 @@ export function ReviewToolbar({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => currentPage && rotatePage(currentPage.id)}
+          onClick={handleRotatePage}
           disabled={!currentPage}
         >
           <RotateCw className="size-4" />

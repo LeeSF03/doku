@@ -7,6 +7,7 @@ import { ArrowLeft, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
+import { clearActiveScanDraft } from "../../_lib/scan-drafts-db"
 import { useScanDraftActions } from "../../_providers/scan-provider"
 
 export function ReviewHeader() {
@@ -15,6 +16,7 @@ export function ReviewHeader() {
 
   const handleDiscardDraft = () => {
     resetDraft()
+    clearActiveScanDraft()
     router.replace("/scan")
   }
 

@@ -1,10 +1,32 @@
 "use client"
 
-import { type ReactNode, createContext, useContext, useState } from "react"
+import {
+  type ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react"
 
 import { minBy } from "es-toolkit"
 import { useStore } from "zustand"
 import { createStore } from "zustand/vanilla"
+
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+import {
+  ACTIVE_SCAN_DRAFT_ID,
+  clearActiveScanDraft,
+  loadActiveScanDraft,
+} from "../_lib/scan-drafts-db"
 
 export type ScanFilterId = "original" | "bw" | "grayscale" | "color"
 export type ScanPageRotation = 0 | 90 | 180 | 270
@@ -18,12 +40,13 @@ export type ScanDraftPage = {
 }
 
 type ScanDraftState = {
-  draftId: string
+  draftId: string | null
   pages: ScanDraftPage[]
   actions: ScanDraftActions
 }
 
 type ScanDraftActions = {
+  restoreActiveDraft: (pages: ScanDraftPage[]) => void
   upsertPage: (page: ScanDraftPage) => void
   removePage: (pageId: string) => void
   replacePageImage: (pageId: string, imageUrl: string) => void
@@ -33,9 +56,9 @@ type ScanDraftActions = {
 }
 
 const initialScanDraftState = {
-  draftId: "draft",
-  pages: [] as ScanDraftPage[],
-}
+  draftId: null,
+  pages: [],
+} satisfies Omit<ScanDraftState, "actions">
 
 type ScanDraftStore = ReturnType<typeof createScanDraftStore>
 
@@ -43,10 +66,79 @@ const ScanDraftStoreContext = createContext<ScanDraftStore | null>(null)
 
 export function ScanProvider({ children }: { children: ReactNode }) {
   const [store] = useState(createScanDraftStore)
+  const [pendingDraft, setPendingDraft] =
+    useState<Awaited<ReturnType<typeof loadActiveScanDraft>>>(null)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    loadActiveScanDraft().then((draft) => {
+      if (cancelled) return
+
+      if (draft?.pages.length) {
+        setPendingDraft(draft)
+        setRestoreDialogOpen(true)
+        return
+      }
+
+      store.getState().actions.restoreActiveDraft([])
+    })
+
+    return () => {
+      cancelled = true
+      revokePageImageUrls(store.getState().pages)
+    }
+  }, [store])
+
+  function handleRestoreDraft() {
+    if (!pendingDraft) return
+
+    store.getState().actions.restoreActiveDraft(
+      pendingDraft.pages.map((page) => ({
+        id: page.id,
+        imageUrl: URL.createObjectURL(page.imageBlob),
+        rotation: page.rotation,
+        filter: page.filter,
+      }))
+    )
+    setPendingDraft(null)
+    setRestoreDialogOpen(false)
+  }
+
+  async function handleDiscardDraft() {
+    await clearActiveScanDraft()
+    store.getState().actions.restoreActiveDraft([])
+    setPendingDraft(null)
+    setRestoreDialogOpen(false)
+  }
+
+  const pendingPageCount = pendingDraft?.pages.length ?? 0
 
   return (
     <ScanDraftStoreContext.Provider value={store}>
       {children}
+      <Dialog open={restoreDialogOpen}>
+        <DialogContent
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onInteractOutside={() => setRestoreDialogOpen(false)}
+        >
+          <DialogHeader>
+            <DialogTitle>Continue previous scan?</DialogTitle>
+            <DialogDescription>
+              You have an unfinished scan with {pendingPageCount}{" "}
+              {pendingPageCount === 1 ? "page" : "pages"}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleDiscardDraft}>
+              Discard
+            </Button>
+            <Button onClick={handleRestoreDraft}>Continue</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScanDraftStoreContext.Provider>
   )
 }
@@ -77,47 +169,89 @@ function createScanDraftStore() {
   return createStore<ScanDraftState>()((set) => ({
     ...initialScanDraftState,
     actions: {
+      restoreActiveDraft: (pages) =>
+        set((state) => {
+          revokePageImageUrls(state.pages)
+
+          return {
+            draftId: ACTIVE_SCAN_DRAFT_ID,
+            pages,
+          }
+        }),
       upsertPage: (page) =>
         set((state) => {
           const pageExists = state.pages.some(
             (draftPage) => draftPage.id === page.id
           )
+          const previousPage = state.pages.find(
+            (draftPage) => draftPage.id === page.id
+          )
+          const nextPages = pageExists
+            ? state.pages.map((draftPage) =>
+                draftPage.id === page.id ? page : draftPage
+              )
+            : [...state.pages, page]
+
+          if (previousPage && previousPage.imageUrl !== page.imageUrl) {
+            URL.revokeObjectURL(previousPage.imageUrl)
+          }
 
           return {
-            pages: pageExists
-              ? state.pages.map((draftPage) =>
-                  draftPage.id === page.id ? page : draftPage
-                )
-              : [...state.pages, page],
+            pages: nextPages,
           }
         }),
       removePage: (pageId) =>
-        set((state) => ({
-          pages: state.pages.filter((page) => page.id !== pageId),
-        })),
+        set((state) => {
+          const removedPage = state.pages.find((page) => page.id === pageId)
+
+          if (removedPage) URL.revokeObjectURL(removedPage.imageUrl)
+
+          return {
+            pages: state.pages.filter((page) => page.id !== pageId),
+          }
+        }),
       replacePageImage: (pageId, imageUrl) =>
-        set((state) => ({
-          pages: state.pages.map((page) =>
-            page.id === pageId ? { ...page, imageUrl } : page
-          ),
-        })),
+        set((state) => {
+          const nextPages = state.pages.map((page) => {
+            if (page.id !== pageId) return page
+
+            URL.revokeObjectURL(page.imageUrl)
+
+            return {
+              ...page,
+              imageUrl,
+            }
+          })
+
+          return {
+            pages: nextPages,
+          }
+        }),
       rotatePage: (pageId) =>
-        set((state) =>
-          updatePageById(state, pageId, (page) => ({
+        set((state) => {
+          return updatePageById(state, pageId, (page) => ({
             ...page,
             rotation: minBy(scanPageRotationOption, (n) =>
               Math.abs(n - ((page.rotation + 90) % 360))
             ) as ScanPageRotation,
           }))
-        ),
+        }),
       setPageFilter: (pageId, filter) =>
-        set((state) =>
-          updatePageById(state, pageId, (page) => ({
+        set((state) => {
+          return updatePageById(state, pageId, (page) => ({
             ...page,
             filter,
           }))
-        ),
-      resetDraft: () => set(initialScanDraftState),
+        }),
+      resetDraft: () =>
+        set((state) => {
+          revokePageImageUrls(state.pages)
+
+          return {
+            ...initialScanDraftState,
+            draftId: ACTIVE_SCAN_DRAFT_ID,
+          }
+        }),
     },
   }))
 }
@@ -132,4 +266,8 @@ function updatePageById(
       page.id === pageId ? updatePage(page) : page
     ),
   }
+}
+
+function revokePageImageUrls(pages: ScanDraftPage[]) {
+  pages.forEach((page) => URL.revokeObjectURL(page.imageUrl))
 }

@@ -2,8 +2,13 @@
 
 import Dexie, { type Table } from "dexie"
 
-export type StoredScanFilterId = "original" | "bw" | "grayscale" | "color"
-export type StoredScanPageRotation = 0 | 90 | 180 | 270
+import {
+  ScanFilterId,
+  ScanPageRotation,
+} from "@/app/scan/_providers/scan-provider"
+
+export type StoredScanFilterId = ScanFilterId
+export type StoredScanPageRotation = ScanPageRotation
 
 export type StoredScanDraft = {
   id: string

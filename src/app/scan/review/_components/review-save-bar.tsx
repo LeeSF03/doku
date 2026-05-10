@@ -9,12 +9,17 @@ import { Input } from "@/components/ui/input"
 
 import { sanitizeFileName } from "@/lib/file"
 
-import { useScanDraftStore } from "../../_providers/scan-provider"
+import { clearActiveScanDraft } from "../../_lib/scan-drafts-db"
+import {
+  useScanDraftActions,
+  useScanDraftStore,
+} from "../../_providers/scan-provider"
 import { createDraftPdf, downloadPdf } from "../_lib/create-draft-pdf"
 
 export function ReviewSaveBar() {
   const router = useRouter()
   const pages = useScanDraftStore((state) => state.pages)
+  const { resetDraft } = useScanDraftActions()
   const [name, setName] = useState("")
   const [saving, setSaving] = useState(false)
 
@@ -35,6 +40,8 @@ export function ReviewSaveBar() {
       toast.success("Document saved", {
         description: documentName,
       })
+      resetDraft()
+      await clearActiveScanDraft()
       router.push("/")
     } catch (error) {
       toast.error("Could not save document", {
