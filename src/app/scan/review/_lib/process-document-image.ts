@@ -1,4 +1,6 @@
 import { canvasToBlob } from "@/lib/canvas"
+import { detectDocumentCornersWithGammaCv } from "@/lib/document-detection"
+import { transformDocumentWithGammaCv } from "@/lib/document-transform"
 
 export type DocumentPoint = {
   x: number
@@ -21,28 +23,9 @@ export async function transformDocumentImage(
   imageUrl: string,
   corners: DocumentCorners
 ) {
-  const imageResponse = await fetch(imageUrl)
+  const image = await loadImage(imageUrl)
 
-  if (!imageResponse.ok) {
-    throw new Error("Could not load document image for transform.")
-  }
-
-  const imageBlob = await imageResponse.blob()
-  const formData = new FormData()
-
-  formData.set("image", imageBlob, "scan.jpg")
-  formData.set("corners", JSON.stringify(corners))
-
-  const transformResponse = await fetch("/api/document-transform", {
-    method: "POST",
-    body: formData,
-  })
-
-  if (!transformResponse.ok) {
-    throw new Error("Document transform request failed.")
-  }
-
-  return transformResponse.blob()
+  return transformDocumentWithGammaCv(image, corners)
 }
 
 export async function createDocumentCorrectionPreview(imageUrl: string) {
@@ -75,7 +58,7 @@ export async function createDocumentCorrectionPreview(imageUrl: string) {
     canvas.height
   )
 
-  const detectedCorners = await detectDocumentCorners(imageUrl)
+  const detectedCorners = await detectDocumentCorners(image)
 
   return {
     blob: await canvasToBlob(canvas, {
@@ -88,37 +71,18 @@ export async function createDocumentCorrectionPreview(imageUrl: string) {
   } satisfies DocumentCorrectionPreview
 }
 
-async function detectDocumentCorners(imageUrl: string) {
-  try {
-    const imageResponse = await fetch(imageUrl)
+async function detectDocumentCorners(image: HTMLImageElement) {
+  const gammaCvCorners = await detectDocumentCornersWithGammaCv(image)
 
-    if (!imageResponse.ok) {
-      throw new Error("Could not load captured image for detection.")
-    }
-
-    const imageBlob = await imageResponse.blob()
-    const formData = new FormData()
-
-    formData.set("image", imageBlob, "scan.jpg")
-
-    const detectionResponse = await fetch("/api/document-detection", {
-      method: "POST",
-      body: formData,
+  if (gammaCvCorners) {
+    console.log("[document-detection] Using GammaCV corners.", {
+      corners: gammaCvCorners,
     })
-
-    if (!detectionResponse.ok) {
-      throw new Error("Document detection request failed.")
-    }
-
-    const result = (await detectionResponse.json()) as {
-      corners: DocumentCorners | null
-    }
-
-    return result.corners
-  } catch (error) {
-    console.warn("[document-detection] Falling back to default corners.", error)
-    return null
+    return gammaCvCorners
   }
+
+  console.warn("[document-detection] GammaCV found no corners.")
+  return null
 }
 
 function getCenteredDocumentCrop(
