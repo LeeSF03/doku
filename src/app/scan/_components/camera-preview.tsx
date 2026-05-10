@@ -3,12 +3,13 @@ import { type RefObject } from "react"
 import { type CameraPreviewState } from "../_hooks/use-camera-preview"
 import { ScanFrame } from "./scan-frame"
 
-type CameraPreviewProps = {
+export function CameraPreview({
+  previewState,
+  videoRef,
+}: {
   previewState: CameraPreviewState
   videoRef: RefObject<HTMLVideoElement | null>
-}
-
-export function CameraPreview({ previewState, videoRef }: CameraPreviewProps) {
+}) {
   return (
     <div className="relative flex-1 overflow-hidden">
       <div className="absolute inset-0 bg-black" />

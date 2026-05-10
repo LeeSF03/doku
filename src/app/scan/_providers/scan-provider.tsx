@@ -12,16 +12,7 @@ import { minBy } from "es-toolkit"
 import { useStore } from "zustand"
 import { createStore } from "zustand/vanilla"
 
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-
+import { RestoreActiveDraftDialog } from "../_components/restore-active-draft-dialog"
 import {
   ACTIVE_SCAN_DRAFT_ID,
   clearActiveScanDraft,
@@ -91,7 +82,7 @@ export function ScanProvider({ children }: { children: ReactNode }) {
     }
   }, [store])
 
-  function handleRestoreDraft() {
+  function handleRestoreActiveDraft() {
     if (!pendingDraft) return
 
     store.getState().actions.restoreActiveDraft(
@@ -106,7 +97,7 @@ export function ScanProvider({ children }: { children: ReactNode }) {
     setRestoreDialogOpen(false)
   }
 
-  async function handleDiscardDraft() {
+  async function handleDiscardActiveDraft() {
     await clearActiveScanDraft()
     store.getState().actions.restoreActiveDraft([])
     setPendingDraft(null)
@@ -118,27 +109,13 @@ export function ScanProvider({ children }: { children: ReactNode }) {
   return (
     <ScanDraftStoreContext.Provider value={store}>
       {children}
-      <Dialog open={restoreDialogOpen}>
-        <DialogContent
-          showCloseButton={false}
-          onEscapeKeyDown={(event) => event.preventDefault()}
-          onInteractOutside={() => setRestoreDialogOpen(false)}
-        >
-          <DialogHeader>
-            <DialogTitle>Continue previous scan?</DialogTitle>
-            <DialogDescription>
-              You have an unfinished scan with {pendingPageCount}{" "}
-              {pendingPageCount === 1 ? "page" : "pages"}.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleDiscardDraft}>
-              Discard
-            </Button>
-            <Button onClick={handleRestoreDraft}>Continue</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RestoreActiveDraftDialog
+        open={restoreDialogOpen}
+        pageCount={pendingPageCount}
+        onDiscard={handleDiscardActiveDraft}
+        onRestore={handleRestoreActiveDraft}
+        onInteractOutside={() => setRestoreDialogOpen(false)}
+      />
     </ScanDraftStoreContext.Provider>
   )
 }

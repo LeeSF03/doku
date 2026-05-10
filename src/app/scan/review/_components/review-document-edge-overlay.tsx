@@ -9,15 +9,13 @@ import {
   type DocumentPoint,
 } from "../_lib/process-document-image"
 
-type ReviewDocumentEdgeOverlayProps = {
-  corners: DocumentCorners
-  onCornerChange: (cornerIndex: number, point: { x: number; y: number }) => void
-}
-
 export function ReviewDocumentEdgeOverlay({
   corners,
   onCornerChange,
-}: ReviewDocumentEdgeOverlayProps) {
+}: {
+  corners: DocumentCorners
+  onCornerChange: (cornerIndex: number, point: { x: number; y: number }) => void
+}) {
   const overlayRef = useRef<HTMLDivElement | null>(null)
   const polygonRef = useRef<SVGPolygonElement | null>(null)
   const handleRefs = useRef<Array<HTMLDivElement | null>>([])

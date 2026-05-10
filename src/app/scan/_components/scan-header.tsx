@@ -11,19 +11,17 @@ import { Button } from "@/components/ui/button"
 
 import { type CameraPreviewState } from "../_hooks/use-camera-preview"
 
-type ScanHeaderProps = {
-  flashEnabled: boolean
-  flashSupported: boolean
-  previewState: CameraPreviewState
-  toggleFlash: () => Promise<void>
-}
-
 export function ScanHeader({
   flashEnabled,
   flashSupported,
   previewState,
   toggleFlash,
-}: ScanHeaderProps) {
+}: {
+  flashEnabled: boolean
+  flashSupported: boolean
+  previewState: CameraPreviewState
+  toggleFlash: () => Promise<void>
+}) {
   const router = useRouter()
   const [replacePageId] = useQueryState("replace-page-id")
   const flashDisabled = previewState !== "ready" || !flashSupported

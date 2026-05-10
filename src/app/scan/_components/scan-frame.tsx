@@ -4,11 +4,6 @@ import { cn } from "@/lib/utils"
 
 import { type CameraPreviewState } from "../_hooks/use-camera-preview"
 
-type ScanFrameProps = {
-  previewState: CameraPreviewState
-  children: ReactNode
-}
-
 const messageByState = {
   loading: "Starting camera…",
   "permission-denied": "Allow camera access to scan documents.",
@@ -17,7 +12,13 @@ const messageByState = {
   unsupported: "Camera preview is not supported in this browser.",
 } satisfies Record<CameraPreviewState, string>
 
-export function ScanFrame({ previewState, children }: ScanFrameProps) {
+export function ScanFrame({
+  previewState,
+  children,
+}: {
+  previewState: CameraPreviewState
+  children: ReactNode
+}) {
   const guidanceMessage = messageByState[previewState]
 
   return (

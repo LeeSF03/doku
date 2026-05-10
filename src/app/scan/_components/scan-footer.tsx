@@ -17,12 +17,13 @@ import {
   useScanDraftStore,
 } from "../_providers/scan-provider"
 
-type ScanFooterProps = {
+export function ScanFooter({
+  captureFrame,
+  previewState,
+}: {
   captureFrame: () => Promise<Blob>
   previewState: CameraPreviewState
-}
-
-export function ScanFooter({ captureFrame, previewState }: ScanFooterProps) {
+}) {
   const router = useRouter()
   const [replacePageId] = useQueryState("replace-page-id")
   const [capturePending, setCapturePending] = useState(false)

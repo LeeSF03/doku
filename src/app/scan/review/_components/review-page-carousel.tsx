@@ -17,15 +17,13 @@ import {
   useScanDraftStore,
 } from "../../_providers/scan-provider"
 
-type ReviewPageCarouselProps = {
-  selectedPageId: string | null
-  setSelectedPageId: (pageId: string | null) => Promise<URLSearchParams>
-}
-
 export function ReviewPageCarousel({
   selectedPageId,
   setSelectedPageId,
-}: ReviewPageCarouselProps) {
+}: {
+  selectedPageId: string | null
+  setSelectedPageId: (pageId: string | null) => Promise<URLSearchParams>
+}) {
   const router = useRouter()
   const pages = useScanDraftStore((state) => state.pages)
   const { removePage } = useScanDraftActions()
