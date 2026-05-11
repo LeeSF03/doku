@@ -62,7 +62,15 @@ export async function createDocumentCorrectionPreview(imageUrl: string) {
     canvas.height
   )
 
-  const detectedCorners = await detectDocumentCorners(image)
+  const detectedCorners = await detectDocumentCornersWithGammaCv(image)
+
+  if (detectedCorners) {
+    console.log("[document-detection] Using GammaCV corners.", {
+      corners: detectedCorners,
+    })
+  } else {
+    console.warn("[document-detection] GammaCV found no corners.")
+  }
 
   return {
     blob: await canvasToBlob(canvas, {
@@ -71,22 +79,13 @@ export async function createDocumentCorrectionPreview(imageUrl: string) {
     }),
     corners: detectedCorners
       ? mapImageCornersToCropCorners(detectedCorners, source, image)
-      : getInsetPreviewCorners(),
+      : [
+          { x: 0.03, y: 0.03 },
+          { x: 0.97, y: 0.03 },
+          { x: 0.97, y: 0.97 },
+          { x: 0.03, y: 0.97 },
+        ],
   } satisfies DocumentCorrectionPreview
-}
-
-async function detectDocumentCorners(image: HTMLImageElement) {
-  const gammaCvCorners = await detectDocumentCornersWithGammaCv(image)
-
-  if (gammaCvCorners) {
-    console.log("[document-detection] Using GammaCV corners.", {
-      corners: gammaCvCorners,
-    })
-    return gammaCvCorners
-  }
-
-  console.warn("[document-detection] GammaCV found no corners.")
-  return null
 }
 
 function getCenteredDocumentCrop(
@@ -123,15 +122,6 @@ function mapImageCornersToCropCorners(
       y: Math.min(1, Math.max(0, y)),
     }
   }) as DocumentCorners
-}
-
-function getInsetPreviewCorners(): DocumentCorners {
-  return [
-    { x: 0.03, y: 0.03 },
-    { x: 0.97, y: 0.03 },
-    { x: 0.97, y: 0.97 },
-    { x: 0.03, y: 0.97 },
-  ]
 }
 
 function loadImage(imageUrl: string) {
