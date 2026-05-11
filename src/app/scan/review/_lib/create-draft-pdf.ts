@@ -64,9 +64,17 @@ export async function createDraftPdf(pages: ScanDraftPage[]) {
     })
   }
 
+  /**
+   * This copies the pdfBytes into a new ArrayBuffer
+   * to help with the type conversion from ArrayBufferLike
+   * to ArrayBuffer
+   * */
   const pdfBytes = await pdfDocument.save()
+  const newBuf = new ArrayBuffer(pdfBytes.byteLength)
+  const newBytes = new Uint8Array(newBuf)
+  newBytes.set(pdfBytes)
 
-  return new Blob([pdfBytes.buffer as ArrayBuffer], {
+  return new Blob([newBytes.buffer], {
     type: "application/pdf",
   })
 }
