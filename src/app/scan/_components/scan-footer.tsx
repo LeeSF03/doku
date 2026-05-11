@@ -1,5 +1,6 @@
 import { useTransition } from "react"
 
+import { type Route } from "next"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -26,6 +27,7 @@ export function ScanFooter({
   const router = useRouter()
   const [replacePageId] = useQueryState("replace-page-id")
   const [capturePending, startCaptureTransition] = useTransition()
+  const draftId = useScanDraftStore((state) => state.draftId)
   const pages = useScanDraftStore((state) => state.pages)
   const pageCount = pages.length
   const { upsertPage } = useScanDraftActions()
@@ -42,7 +44,7 @@ export function ScanFooter({
           filter: "original" as const,
         }
         upsertPage(page)
-        router.push(`/scan/review?draft-page-id=${encodeURIComponent(page.id)}`)
+        router.push(getReviewUrl({ draftId, draftPageId: page.id }))
       } catch (error) {
         toast.error("Could not capture page", {
           description:
@@ -65,7 +67,7 @@ export function ScanFooter({
             aria-label="Open review"
             className="rounded-xl text-white hover:bg-white/10 hover:text-white"
           >
-            <Link href="/scan/review">
+            <Link href={getReviewUrl({ draftId })}>
               <Images className="size-6" />
             </Link>
           </Button>
@@ -103,4 +105,21 @@ export function ScanFooter({
       </div>
     </div>
   )
+}
+
+function getReviewUrl({
+  draftId,
+  draftPageId,
+}: {
+  draftId: string | null
+  draftPageId?: string
+}) {
+  const searchParams = new URLSearchParams()
+
+  if (draftId) searchParams.set("draft-id", draftId)
+  if (draftPageId) searchParams.set("draft-page-id", draftPageId)
+
+  const queryString = searchParams.toString()
+
+  return (queryString ? `/scan/review?${queryString}` : "/scan/review") as Route
 }
