@@ -25,11 +25,11 @@ export function ReviewScreen() {
   const [draftPageId, setDraftPageId] = useQueryState("draft-page-id")
   const hydratedDraftId = useScanDraftStore((state) => state.draftId)
   const currentPage = useScanDraftStore((state) => {
-    if (!draftPageId) return state.pages[-1] ?? null
+    if (!draftPageId) return state.pages[0] ?? null
 
     return (
       state.pages.find((page) => page.id === draftPageId) ??
-      state.pages[-1] ??
+      state.pages[0] ??
       null
     )
   })
