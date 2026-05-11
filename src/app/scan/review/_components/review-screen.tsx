@@ -95,7 +95,7 @@ export function ReviewScreen() {
         <ReviewToolbar currentPage={currentPage} />
       </main>
 
-      <ReviewSaveBar />
+      <ReviewSaveBar draftId={draftId} />
     </div>
   )
 }
