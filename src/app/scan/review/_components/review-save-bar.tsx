@@ -27,6 +27,7 @@ import { createDraftPdf, downloadPdf } from "../_lib/create-draft-pdf"
 export function ReviewSaveBar() {
   const router = useRouter()
   const { resetDraft, setName } = useScanDraftActions()
+  const draftId = useScanDraftStore((state) => state.draftId)
   const pages = useScanDraftStore((state) => state.pages)
   const name = useScanDraftStore((state) => state.name)
   const [keepDraftDialogOpen, setKeepDraftDialogOpen] = useState(false)
@@ -58,7 +59,7 @@ export function ReviewSaveBar() {
   function handleKeepDraft() {
     startTransition(async () => {
       await saveScanDraft({
-        id: crypto.randomUUID(),
+        id: draftId ?? crypto.randomUUID(),
         name: name.trim() || "Untitled document",
         pages: await Promise.all(
           pages.map(async (page, index) => {

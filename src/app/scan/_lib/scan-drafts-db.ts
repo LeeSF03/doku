@@ -68,10 +68,11 @@ export async function saveScanDraft(input: {
 }) {
   try {
     const now = Date.now()
+    const existingDraft = await localDb.drafts.get(input.id)
     const draft = {
       id: input.id,
       name: input.name,
-      createdAt: now,
+      createdAt: existingDraft?.createdAt ?? now,
       updatedAt: now,
     } satisfies StoredScanDraft
     const pages = input.pages.map((page) => ({
@@ -87,6 +88,7 @@ export async function saveScanDraft(input: {
       localDb.draftPages,
       async () => {
         await localDb.drafts.put(draft)
+        await localDb.draftPages.where("draftId").equals(input.id).delete()
         await localDb.draftPages.bulkPut(pages)
       }
     )

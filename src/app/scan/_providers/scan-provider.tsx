@@ -8,9 +8,15 @@ import {
   useState,
 } from "react"
 
+import { useRouter } from "next/navigation"
+
 import { minBy } from "es-toolkit"
+import { useQueryState } from "nuqs"
+import { toast } from "sonner"
 import { useStore } from "zustand"
 import { createStore } from "zustand/vanilla"
+
+import { loadScanDraft } from "../_lib/scan-drafts-db"
 
 export type ScanFilterId = "original" | "bw" | "grayscale" | "color"
 export type ScanPageRotation = 0 | 90 | 180 | 270
@@ -36,6 +42,11 @@ type ScanDraftActions = {
   replacePageImage: (pageId: string, imageUrl: string) => void
   rotatePage: (pageId: string) => void
   setPageFilter: (pageId: string, filter: ScanFilterId) => void
+  restoreDraft: (draft: {
+    draftId: string
+    name: string
+    pages: ScanDraftPage[]
+  }) => void
   resetDraft: () => void
   setName: (name: string) => void
 }
@@ -51,7 +62,57 @@ type ScanDraftStore = ReturnType<typeof createScanDraftStore>
 const ScanDraftStoreContext = createContext<ScanDraftStore | null>(null)
 
 export function ScanProvider({ children }: { children: ReactNode }) {
+  const router = useRouter()
+  const [draftId] = useQueryState("draft-id")
   const [store] = useState(createScanDraftStore)
+
+  useEffect(() => {
+    if (!draftId || store.getState().draftId === draftId) return
+
+    let cancelled = false
+
+    loadScanDraft(draftId)
+      .then((draft) => {
+        if (cancelled) return
+
+        if (!draft) {
+          toast.error("Could not load draft", {
+            description: "The draft may have been deleted.",
+          })
+          router.replace("/")
+          return
+        }
+
+        const pages = draft.pages.map((page) => ({
+          id: page.id,
+          imageUrl: URL.createObjectURL(page.imageBlob),
+          rotation: page.rotation,
+          filter: page.filter,
+        }))
+
+        if (cancelled) {
+          revokePageImageUrls(pages)
+          return
+        }
+
+        store.getState().actions.restoreDraft({
+          draftId: draft.id,
+          name: draft.name,
+          pages,
+        })
+      })
+      .catch((error: unknown) => {
+        console.warn("[scan-draft] Could not load draft.", error)
+        toast.error("Could not load draft", {
+          description: "Try opening it again from the drafts page.",
+        })
+        router.replace("/")
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [draftId, router, store])
 
   useEffect(() => {
     return () => {
@@ -168,6 +229,16 @@ function createScanDraftStore() {
                 ...page,
                 filter,
               }))
+            }),
+          restoreDraft: (draft) =>
+            set((state) => {
+              revokePageImageUrls(state.pages)
+
+              return {
+                draftId: draft.draftId,
+                name: draft.name,
+                pages: draft.pages,
+              }
             }),
           resetDraft: () =>
             set((state) => {
