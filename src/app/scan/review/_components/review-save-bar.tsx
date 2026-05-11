@@ -26,9 +26,9 @@ import { createDraftPdf, downloadPdf } from "../_lib/create-draft-pdf"
 
 export function ReviewSaveBar() {
   const router = useRouter()
+  const { resetDraft, setName } = useScanDraftActions()
   const pages = useScanDraftStore((state) => state.pages)
-  const { resetDraft } = useScanDraftActions()
-  const [name, setName] = useState("")
+  const name = useScanDraftStore((state) => state.name)
   const [keepDraftDialogOpen, setKeepDraftDialogOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 

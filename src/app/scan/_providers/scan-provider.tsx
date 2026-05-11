@@ -25,6 +25,7 @@ export type ScanDraftPage = {
 
 type ScanDraftState = {
   draftId: string | null
+  name: string
   pages: ScanDraftPage[]
   actions: ScanDraftActions
 }
@@ -36,11 +37,13 @@ type ScanDraftActions = {
   rotatePage: (pageId: string) => void
   setPageFilter: (pageId: string, filter: ScanFilterId) => void
   resetDraft: () => void
+  setName: (name: string) => void
 }
 
 const initialScanDraftState = {
   draftId: null,
   pages: [],
+  name: "",
 } satisfies Omit<ScanDraftState, "actions">
 
 type ScanDraftStore = ReturnType<typeof createScanDraftStore>
@@ -75,6 +78,16 @@ export function useScanDraftStore<T>(
   return useStore(store, selector)
 }
 
+export function useScanDraftStoreApi() {
+  const store = useContext(ScanDraftStoreContext)
+
+  if (!store) {
+    throw new Error("useScanDraftStore must be used within ScanProvider.")
+  }
+
+  return store
+}
+
 export function useScanDraftActions() {
   const store = useContext(ScanDraftStoreContext)
 
@@ -86,84 +99,88 @@ export function useScanDraftActions() {
 }
 
 function createScanDraftStore() {
-  return createStore<ScanDraftState>()((set) => ({
-    ...initialScanDraftState,
-    actions: {
-      upsertPage: (page) =>
-        set((state) => {
-          const pageExists = state.pages.some(
-            (draftPage) => draftPage.id === page.id
-          )
-          const previousPage = state.pages.find(
-            (draftPage) => draftPage.id === page.id
-          )
-          const nextPages = pageExists
-            ? state.pages.map((draftPage) =>
-                draftPage.id === page.id ? page : draftPage
+  return createStore<ScanDraftState>()(
+    (set) =>
+      ({
+        ...initialScanDraftState,
+        actions: {
+          upsertPage: (page) =>
+            set((state) => {
+              const pageExists = state.pages.some(
+                (draftPage) => draftPage.id === page.id
               )
-            : [...state.pages, page]
+              const previousPage = state.pages.find(
+                (draftPage) => draftPage.id === page.id
+              )
+              const nextPages = pageExists
+                ? state.pages.map((draftPage) =>
+                    draftPage.id === page.id ? page : draftPage
+                  )
+                : [...state.pages, page]
 
-          if (previousPage && previousPage.imageUrl !== page.imageUrl) {
-            URL.revokeObjectURL(previousPage.imageUrl)
-          }
+              if (previousPage && previousPage.imageUrl !== page.imageUrl) {
+                URL.revokeObjectURL(previousPage.imageUrl)
+              }
 
-          return {
-            pages: nextPages,
-          }
-        }),
-      removePage: (pageId) =>
-        set((state) => {
-          const removedPage = state.pages.find((page) => page.id === pageId)
+              return {
+                pages: nextPages,
+              }
+            }),
+          removePage: (pageId) =>
+            set((state) => {
+              const removedPage = state.pages.find((page) => page.id === pageId)
 
-          if (removedPage) URL.revokeObjectURL(removedPage.imageUrl)
+              if (removedPage) URL.revokeObjectURL(removedPage.imageUrl)
 
-          return {
-            pages: state.pages.filter((page) => page.id !== pageId),
-          }
-        }),
-      replacePageImage: (pageId, imageUrl) =>
-        set((state) => {
-          const nextPages = state.pages.map((page) => {
-            if (page.id !== pageId) return page
+              return {
+                pages: state.pages.filter((page) => page.id !== pageId),
+              }
+            }),
+          replacePageImage: (pageId, imageUrl) =>
+            set((state) => {
+              const nextPages = state.pages.map((page) => {
+                if (page.id !== pageId) return page
 
-            URL.revokeObjectURL(page.imageUrl)
+                URL.revokeObjectURL(page.imageUrl)
 
-            return {
-              ...page,
-              imageUrl,
-            }
-          })
+                return {
+                  ...page,
+                  imageUrl,
+                }
+              })
 
-          return {
-            pages: nextPages,
-          }
-        }),
-      rotatePage: (pageId) =>
-        set((state) => {
-          return updatePageById(state, pageId, (page) => ({
-            ...page,
-            rotation: minBy(scanPageRotationOption, (n) =>
-              Math.abs(n - ((page.rotation + 90) % 360))
-            ) as ScanPageRotation,
-          }))
-        }),
-      setPageFilter: (pageId, filter) =>
-        set((state) => {
-          return updatePageById(state, pageId, (page) => ({
-            ...page,
-            filter,
-          }))
-        }),
-      resetDraft: () =>
-        set((state) => {
-          revokePageImageUrls(state.pages)
+              return {
+                pages: nextPages,
+              }
+            }),
+          rotatePage: (pageId) =>
+            set((state) => {
+              return updatePageById(state, pageId, (page) => ({
+                ...page,
+                rotation: minBy(scanPageRotationOption, (n) =>
+                  Math.abs(n - ((page.rotation + 90) % 360))
+                ) as ScanPageRotation,
+              }))
+            }),
+          setPageFilter: (pageId, filter) =>
+            set((state) => {
+              return updatePageById(state, pageId, (page) => ({
+                ...page,
+                filter,
+              }))
+            }),
+          resetDraft: () =>
+            set((state) => {
+              revokePageImageUrls(state.pages)
 
-          return {
-            ...initialScanDraftState,
-          }
-        }),
-    },
-  }))
+              return {
+                ...initialScanDraftState,
+              }
+            }),
+          setName: (name: string) => set({ name }),
+        },
+      }) satisfies ScanDraftState
+  )
 }
 
 function updatePageById(

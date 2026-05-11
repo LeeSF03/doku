@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useTransition } from "react"
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -25,33 +25,31 @@ export function ScanFooter({
 }) {
   const router = useRouter()
   const [replacePageId] = useQueryState("replace-page-id")
-  const [capturePending, setCapturePending] = useState(false)
+  const [capturePending, startCaptureTransition] = useTransition()
   const pages = useScanDraftStore((state) => state.pages)
   const pageCount = pages.length
   const { upsertPage } = useScanDraftActions()
 
-  const handleCapture = async () => {
-    setCapturePending(true)
-
-    try {
-      const blob = await captureFrame()
-      const imageUrl = URL.createObjectURL(blob)
-      const page: ScanDraftPage = {
-        id: replacePageId ?? crypto.randomUUID(),
-        imageUrl,
-        rotation: 0,
-        filter: "original" as const,
+  const handleCapture = () => {
+    startCaptureTransition(async () => {
+      try {
+        const blob = await captureFrame()
+        const imageUrl = URL.createObjectURL(blob)
+        const page: ScanDraftPage = {
+          id: replacePageId ?? crypto.randomUUID(),
+          imageUrl,
+          rotation: 0,
+          filter: "original" as const,
+        }
+        upsertPage(page)
+        router.push(`/scan/review?draft-page-id=${encodeURIComponent(page.id)}`)
+      } catch (error) {
+        toast.error("Could not capture page", {
+          description:
+            error instanceof Error ? error.message : "Try again in a moment.",
+        })
       }
-      upsertPage(page)
-      router.push(`/scan/review?draft-page-id=${encodeURIComponent(page.id)}`)
-    } catch (error) {
-      toast.error("Could not capture page", {
-        description:
-          error instanceof Error ? error.message : "Try again in a moment.",
-      })
-    } finally {
-      setCapturePending(false)
-    }
+    })
   }
 
   const canOpenReview = pageCount > 0
