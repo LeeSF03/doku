@@ -15,7 +15,7 @@ export function ReviewHeader() {
 
   const handleDiscardDraft = () => {
     resetDraft()
-    router.replace("/scan")
+    router.back()
   }
 
   return (
