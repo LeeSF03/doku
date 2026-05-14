@@ -91,15 +91,6 @@ export function ReviewSaveBar({ draftId }: { draftId: string | null }) {
     })
   }
 
-  function handleDiscardDraft() {
-    if (isPending) return
-
-    startTransition(async () => {
-      resetDraft()
-      router.push("/")
-    })
-  }
-
   return (
     <div className="bg-background/95 pointer-events-none fixed inset-x-0 bottom-0 border-t px-5 pt-3 pb-[max(env(safe-area-inset-bottom),1rem)] backdrop-blur">
       <div className="pointer-events-auto space-y-3">
@@ -142,15 +133,6 @@ export function ReviewSaveBar({ draftId }: { draftId: string | null }) {
           )}
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={handleDiscardDraft}
-          disabled={isPending}
-          className="text-muted-foreground h-9 w-full"
-        >
-          Discard
-        </Button>
       </div>
     </div>
   )
