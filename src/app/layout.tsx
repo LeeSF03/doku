@@ -5,6 +5,8 @@ import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 import { Toaster } from "@/components/ui/sonner"
 
+import { SITE_URL } from "@/lib/site"
+
 import "./globals.css"
 
 const geistSans = Geist({
@@ -18,6 +20,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Doku — Document Scanner",
   description: "Scan, review, and organize documents from your phone.",
 }
