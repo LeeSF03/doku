@@ -39,8 +39,6 @@ export function ReviewSaveBar({ draftId }: { draftId: string | null }) {
         toast.success("PDF exported", {
           description: documentName,
         })
-        resetDraft()
-        router.push("/")
       } catch (error) {
         toast.error("Could not export PDF", {
           description:
@@ -132,7 +130,6 @@ export function ReviewSaveBar({ draftId }: { draftId: string | null }) {
             </Button>
           )}
         </div>
-
       </div>
     </div>
   )
