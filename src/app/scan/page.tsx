@@ -1,12 +1,9 @@
 import type { Metadata } from "next"
 import { connection } from "next/server"
 
-import { SITE_URL } from "@/lib/site"
-
 import { ScanScreen } from "./_components/scan-screen"
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
   title: "Scan Document | Doku",
   description: "Capture document scans directly in your browser with Doku.",
   alternates: {
